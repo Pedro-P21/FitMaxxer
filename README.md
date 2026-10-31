@@ -60,6 +60,7 @@ FitMaxxer/
 │   ├── lib/                  # Dart source code (models, services, views, widgets)
 │   └── pubspec.yaml
 └── docs/                     # Architecture diagrams and documentation
+```text
 
 ## Getting Started & Installation
 Coming soon.
