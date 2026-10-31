@@ -1,0 +1,106 @@
+@startuml "Domain_Model"
+
+top to bottom direction
+skinparam linetype ortho
+hide circle
+skinparam nodesep 40
+skinparam ranksep 80
+skinparam padding 10
+
+package "User & Profile Aggregate" {
+    class User <<Entity Root>> {}
+    class UserId <<Value Object>> <<Business ID>> {}
+    class Email <<Value Object>> {}
+    class Password <<Value Object>> {}
+    class UserProfile <<Entity>> {}
+    class PhysicalData <<Value Object>> {}
+    class ActivityLevel <<Value Object>> {}
+    class NutritionalGoal <<Value Object>> {}
+    class CalorieTarget <<Value Object>> {}
+    class MacroBreakdown <<Value Object>> {}
+}
+
+package "Food Catalog Aggregate" {
+    class FoodItem <<Entity Root>> {}
+    class FoodId <<Value Object>> <<Business ID>> {}
+    class FoodName <<Value Object>> {}
+    class Barcode <<Value Object>> {}
+    class NutrientComposition <<Value Object>> {}
+    class ServingSize <<Value Object>> {}
+}
+
+package "Recipe & Custom Food Aggregate" {
+    class CustomRecipe <<Entity Root>> {}
+    class RecipeId <<Value Object>> <<Business ID>> {}
+    class RecipeName <<Value Object>> {}
+    class RecipeIngredients <<Value Object>> {}
+}
+
+package "Meal & Daily Log Aggregate" {
+    class DailyLog <<Entity Root>> {}
+    class DailyLogId <<Value Object>> <<Business ID>> {}
+    class LogDate <<Value Object>> {}
+    class Meal <<Entity>> {}
+    class MealType <<Value Object>> {}
+    class MealItem <<Entity>> {}
+    class PortionQuantity <<Value Object>> {}
+}
+
+package "Progress & Analytics Aggregate" {
+    class ProgressTracker <<Entity Root>> {}
+    class WeightRecord <<Value Object>> {}
+    class TrendAnalysis <<Value Object>> {}
+}
+
+User "1" *-- "1" UserId
+User "1" *-- "1" Email
+User "1" *-- "1" PasswordHash
+User "1" *-- "1" UserProfile
+User "1" *-- "1" NutritionalGoal
+
+UserProfile "1" *-- "1" PhysicalData
+UserProfile "1" *-- "1" ActivityLevel
+
+NutritionalGoal "1" *-- "1" CalorieTarget
+NutritionalGoal "1" *-- "1" MacroBreakdown
+
+FoodItem "1" *-- "1" FoodId
+FoodItem "1" *-- "1" FoodName
+FoodItem "1" *-- "0..1" Barcode
+FoodItem "1" *-- "1" NutrientComposition
+FoodItem "1" *-- "1" ServingSize
+
+CustomRecipe "1" *-- "1" RecipeId
+CustomRecipe "1" *-- "1" RecipeName
+CustomRecipe "1" *-- "1..*" RecipeIngredients
+CustomRecipe "1" --> "1" User : "created by"
+
+DailyLog "1" *-- "1" DailyLogId
+DailyLog "1" *-- "1" LogDate
+DailyLog "1" --> "1" User : "belongs to"
+DailyLog "1" *-- "0..*" Meal
+
+Meal "1" *-- "1" MealType
+Meal "1" *-- "0..*" MealItem
+
+MealItem "1" *-- "1" PortionQuantity
+MealItem "1" --> "1" FoodItem : "references"
+MealItem "1" --> "0..1" CustomRecipe : "references"
+
+ProgressTracker "1" --> "1" User : "tracks"
+ProgressTracker "1" *-- "0..*" WeightRecord
+ProgressTracker "1" *-- "0..1" TrendAnalysis
+
+note left of User
+  **User Aggregate**
+  - Manages authentication and the user profile.
+  - Holds computed or manually overridden nutritional goals.
+end note
+
+note right of DailyLog
+  **Meal & Daily Log Aggregate**
+  - Represents a day of tracking.
+  - Contains meals (Breakfast, Lunch, etc.) made of specific food or recipe portions.
+end note
+
+@enduml
