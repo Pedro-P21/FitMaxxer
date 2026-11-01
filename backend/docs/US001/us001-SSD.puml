@@ -1,0 +1,24 @@
+@startuml US001-SSD
+autonumber
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+actor "User" as Actor
+participant ":System" as System
+
+activate Actor
+Actor -> System : initiates personal data logging (age, weight, height, gender, activity level)
+activate System
+
+System --> Actor : requests personal data form / input fields
+Actor -> System : submits personal data details
+
+System -> System : validates inputs and computes nutritional baseline/goals
+System --> Actor : confirms successful profile update and displays calculated goals
+
+
+deactivate System
+deactivate Actor
+
+@enduml

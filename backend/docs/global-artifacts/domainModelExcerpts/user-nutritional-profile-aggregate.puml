@@ -1,0 +1,27 @@
+@startuml "user-profile-aggregate"
+
+top to bottom direction
+skinparam linetype ortho
+hide circle
+skinparam nodesep 40
+skinparam ranksep 80
+skinparam padding 10
+
+package "User Profile Aggregate" {
+    class UserNutritionalProfile <<Entity Root>> {}
+    class PhysicalData <<Value Object>> {}
+    class ActivityLevel <<Value Object>> {}
+    class NutritionalGoal <<Value Object>> {}
+    class CalorieTarget <<Value Object>> {}
+    class MacroBreakdown <<Value Object>> {}
+}
+
+UserNutritionalProfile "1" --> "0..1" User : "belongs to"
+UserNutritionalProfile "1" *-- "0..1" PhysicalData
+UserNutritionalProfile "1" *-- "0..1" ActivityLevel
+UserNutritionalProfile "1" *-- "0..1" NutritionalGoal
+
+NutritionalGoal "1" *-- "1" CalorieTarget
+NutritionalGoal "1" *-- "1" MacroBreakdown
+
+@enduml
