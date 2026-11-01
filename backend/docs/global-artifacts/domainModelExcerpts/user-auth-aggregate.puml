@@ -1,0 +1,23 @@
+@startuml "user-auth-aggregate"
+
+top to bottom direction
+skinparam linetype ortho
+hide circle
+skinparam nodesep 40
+skinparam ranksep 80
+skinparam padding 10
+
+
+package "User Authentication Aggregate" {
+    class User <<Entity Root>> {}
+    class UserId <<Value Object>> {}
+    class Email <<Value Object>> {}
+    class Password <<Value Object>> {}
+}
+
+User "1" *-- "1" UserId
+User "1" *-- "1" Email
+User "1" *-- "1" Password
+
+@enduml
+

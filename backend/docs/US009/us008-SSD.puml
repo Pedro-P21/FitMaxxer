@@ -1,0 +1,32 @@
+@startuml US009-SSD
+autonumber
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+actor "User" as Actor
+participant ":System" as System
+
+activate Actor
+Actor -> System : requests account registration (email, password)
+activate System
+
+System -> System : validates email format, checks uniqueness, and hashes password
+System -> System : persists User aggregate
+System --> Actor : confirms successful account creation
+
+deactivate System
+
+
+Actor -> System : requests login (email, password)
+activate System
+
+System -> System : verifies email and compares password hash
+System --> Actor : confirms successful authentication and returns session token
+
+
+
+deactivate System
+deactivate Actor
+
+@enduml
