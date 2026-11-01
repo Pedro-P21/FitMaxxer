@@ -7,12 +7,15 @@ skinparam nodesep 40
 skinparam ranksep 80
 skinparam padding 10
 
-package "User & Profile Aggregate" {
+package "User Authentication Aggregate" {
     class User <<Entity Root>> {}
-    class UserId <<Value Object>> <<Business ID>> {}
+    class UserId <<Value Object>> {}
     class Email <<Value Object>> {}
     class Password <<Value Object>> {}
-    class UserProfile <<Entity>> {}
+}
+
+package "User Profile Aggregate" {
+    class UserNutritionalProfile <<Entity Root>> {}
     class PhysicalData <<Value Object>> {}
     class ActivityLevel <<Value Object>> {}
     class NutritionalGoal <<Value Object>> {}
@@ -22,7 +25,7 @@ package "User & Profile Aggregate" {
 
 package "Food Catalog Aggregate" {
     class FoodItem <<Entity Root>> {}
-    class FoodId <<Value Object>> <<Business ID>> {}
+    class FoodId <<Value Object>>  {}
     class FoodName <<Value Object>> {}
     class Barcode <<Value Object>> {}
     class NutrientComposition <<Value Object>> {}
@@ -31,14 +34,14 @@ package "Food Catalog Aggregate" {
 
 package "Recipe & Custom Food Aggregate" {
     class CustomRecipe <<Entity Root>> {}
-    class RecipeId <<Value Object>> <<Business ID>> {}
+    class RecipeId <<Value Object>>  {}
     class RecipeName <<Value Object>> {}
     class RecipeIngredients <<Value Object>> {}
 }
 
 package "Meal & Daily Log Aggregate" {
     class DailyLog <<Entity Root>> {}
-    class DailyLogId <<Value Object>> <<Business ID>> {}
+    class DailyLogId <<Value Object>>  {}
     class LogDate <<Value Object>> {}
     class Meal <<Entity>> {}
     class MealType <<Value Object>> {}
@@ -54,12 +57,12 @@ package "Progress & Analytics Aggregate" {
 
 User "1" *-- "1" UserId
 User "1" *-- "1" Email
-User "1" *-- "1" PasswordHash
-User "1" *-- "1" UserProfile
-User "1" *-- "1" NutritionalGoal
+User "1" *-- "1" Password
 
-UserProfile "1" *-- "1" PhysicalData
-UserProfile "1" *-- "1" ActivityLevel
+UserNutritionalProfile "1" --> "0..1" User : "belongs to"
+UserNutritionalProfile "1" *-- "0..1" PhysicalData
+UserNutritionalProfile "1" *-- "0..1" ActivityLevel
+UserNutritionalProfile "1" *-- "0..1" NutritionalGoal
 
 NutritionalGoal "1" *-- "1" CalorieTarget
 NutritionalGoal "1" *-- "1" MacroBreakdown
@@ -91,16 +94,15 @@ ProgressTracker "1" --> "1" User : "tracks"
 ProgressTracker "1" *-- "0..*" WeightRecord
 ProgressTracker "1" *-- "0..1" TrendAnalysis
 
-note left of User
-  **User Aggregate**
-  - Manages authentication and the user profile.
-  - Holds computed or manually overridden nutritional goals.
+note bottom of User
+  **User Authentication Aggregate**
+- Manages user identity, email, and secure credentials.
 end note
 
-note right of DailyLog
-  **Meal & Daily Log Aggregate**
-  - Represents a day of tracking.
-  - Contains meals (Breakfast, Lunch, etc.) made of specific food or recipe portions.
+note top of UserNutritionalProfile
+  **User Profile Aggregate**
+- Created optionally after registration (Onboarding).
+- Relates directly to the User Entity Root.
 end note
 
 @enduml
