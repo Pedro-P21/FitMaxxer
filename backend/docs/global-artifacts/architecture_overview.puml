@@ -1,0 +1,38 @@
+@startuml Architecture_Overview
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam nodesep 40
+skinparam ranksep 60
+
+node "Mobile Client (Flutter)" {
+    [Flutter UI & State (Memory)]
+    [Secure Storage]
+}
+
+cloud "REST API over HTTP / HTTPS (JSON)" as Network
+
+node "Backend Server (Spring Boot)" {
+    package "Presentation Layer" {
+        [REST Controllers\n(e.g., UserAuthController)]
+    }
+
+    package "Domain / Business Layer" {
+        [Domain Services & Aggregates\n(User, UserProfile, DailyLog, etc.)]
+    }
+
+    package "Persistence Layer" {
+        [Spring Data JPA Repositories]
+    }
+}
+
+database "Database" as DB
+
+
+[Flutter UI & State (Memory)] --> Network : HTTP Requests (POST/GET)\n+ Authorization Header (JWT)
+[Secure Storage\n(JWT Auth Token)] --> [Flutter UI & State (Memory)] : Supplies token on startup
+Network --> [REST Controllers\n(e.g., UserAuthController)]
+[REST Controllers\n(e.g., UserAuthController)] --> [Domain Services & Aggregates\n(User, UserProfile, DailyLog, etc.)]
+[Domain Services & Aggregates\n(User, UserProfile, DailyLog, etc.)] --> [Spring Data JPA Repositories]
+[Spring Data JPA Repositories] --> DB : JDBC / SQL
+
+@enduml
