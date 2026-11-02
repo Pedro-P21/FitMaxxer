@@ -50,16 +50,17 @@ To maintain high software engineering standards, the Java backend follows **Doma
 ## Project Structure
 ```text
 FitMaxxer/
-├── backend/                  # Spring Boot Java application (Domain-Driven Design)
+├── backend/                    # Spring Boot Java application (Domain-Driven Design)
 │   ├── src/main/java/com/pedro/fitmaxxer/
-│   │   ├── domain/           # Core business logic & entities
-│   │   ├── application/      # Use cases & services
-│   │   └── infrastructure/   # DB persistence, controllers, external APIs
+│   │   ├── domain/             # Core business logic & entities
+│   │   ├── application/        # Use cases & services
+│   │   └── infrastructure/     # DB persistence, controllers, external APIs
+│   ├── docs/                   # Backend architecture and documentation
 │   └── build.gradle.kts
-├── mobile/                   # Flutter cross-platform mobile application
-│   ├── lib/                  # Dart source code (models, services, views, widgets)
-│   └── pubspec.yaml
-└── docs/                     # Architecture diagrams and documentation
+└── mobile/                     # Flutter cross-platform mobile application (Frontend)
+    ├── lib/                    # Dart source code (models, services, views, widgets)
+    ├── docs/                   # Mobile frontend documentation
+    └── pubspec.yaml                    # Architecture diagrams and documentation
 ```
 
 ## Getting Started & Installation
