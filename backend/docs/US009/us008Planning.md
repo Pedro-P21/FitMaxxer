@@ -37,7 +37,7 @@ As a User, I want to create an account and log in securely, so that my personal 
 - Error messages in case of validation failures (e.g., "Email already in use", "Invalid email format", "Invalid credentials").
 
 ##### 1.6. System Sequence Diagram (SSD)
-![US009-SSD.svg](US008_SSD.svg)
+![US008-SSD.svg](US008_SSD.svg)
 
 ##### 1.7. Assumptions and Decisions
 - Account creation and authentication will use stateless or token-based session handling suitable for REST APIs interacting with a Flutter mobile client.
@@ -55,22 +55,42 @@ The following domain entities and value objects compose the `User Authentication
 
 ---
 
-## 3. Design
-
 ### 3.1. Rationale
+
+To justify the architectural and technical choices made for the authentication and account management module (US008), the following table maps each design pattern and structural decision to its core engineering benefit:
+
+| Architectural Component / Pattern      | Choice & Implementation                                                                                                            | Rationale & Benefit                                                                                                                                                    |
+|:---------------------------------------|:-----------------------------------------------------------------------------------------------------------------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Domain Factory & Value Objects**     | Encapsulation of creation logic via factory methods (`createNewUser`) and immutable Value Objects (`Email`, `Password`, `UserID`). | Ensures that a `User` aggregate can never be instantiated in an invalid state, enforcing business invariants and data integrity directly in memory before persistence. |
+| **DTO (Data Transfer Object) Pattern** | Separation of API contracts using `RegisterRequestDTO`, `LoginRequestDTO`, and `JwtResponseDTO`.                                   | Shields the internal domain models from external API schema changes, controls exposed data structures, and optimizes network payload over REST/JSON.                   |
+| **Repository Pattern**                 | Abstraction of data persistence using Spring Data JPA (`UserRepository`) with custom query methods.                                | Decouples business logic and domain services from database implementation details, improving testability and maintainability.                                          |
+| **Declarative Transactions**           | Management of database operations via Spring's `@Transactional` annotation at the service layer.                                   | Guarantees atomicity and data consistency across multi-step operations, automatically handling commits and rollbacks in case of failure.                               |
+| **Aggregate Separation**               | Decoupling core credentials (`User`) from physical metrics and onboarding goals (`UserProfile`).                                   | Permits modular development, allowing authentication to function independently and onboarding workflows to evolve without modifying core security records.             |
+| **Secure Password Handling**           | Immediate hashing using Spring Security's `PasswordEncoder` (BCrypt).                                                              | Protects user credentials against data breaches by ensuring plain-text passwords are never stored in memory or the database.                                           |
 
 ### 3.2. Design Decisions & Architecture
 
 1. **Separation of Authentication and Profile Aggregates**
-   The `User` entity only contains core credentials (`Email`, `Password`). Profile data (`UserProfile`) and nutritional goals are maintained in a separate aggregate to allow onboarding to happen independently after registration.
+   The `User` entity exclusively manages core security credentials (`Email`, `Password`, `userID`). Physical profile data and nutritional goals (`UserProfile`) reside in a separate aggregate to allow onboarding to occur independently after registration.
 
-2. **Secure Password Handling**
-   Raw passwords are never stored in memory or the database. They are validated via the `Password` value object and immediately hashed using Spring Security's `PasswordEncoder` (BCrypt).
+2. **Domain Factory Pattern & Value Object Validation**
+   To maintain strict Domain-Driven Design principles, validation logic (such as checking email formats or password complexity) resides inside the immutable Value Objects. The `User` aggregate utilizes a domain factory method (`createNewUser`) to orchestrate secure creation, ensuring that raw parameters are validated and passwords are fully hashed before the entity reaches the persistence layer.
 
-3. **Unique Email Constraint**
-   Enforced at both the domain service level (via repository check) and database level (unique constraint on the email column) to prevent race conditions during concurrent sign-ups.
+3. **DTO Pattern and Data Mapping**
+   Request and response payloads are strictly handled via dedicated DTOs (`RegisterRequestDTO`, `LoginRequestDTO`, `JwtResponseDTO`). Controllers receive and return these structures, preventing direct exposure of domain entities over the REST API and keeping the architecture clean and decoupled.
+
+4. **Repository Pattern & Spring Data JPA**
+   Data access is mediated through the `UserRepository` interface extending Spring Data JPA. This abstracts away boilerplate SQL operations and provides clean query definitions (such as `findByEmailOrUserId`), allowing the service layer to interact with the database through high-level domain abstractions.
+
+5. **Declarative Database Transactions (`@Transactional`)**
+   Database transaction boundaries are managed declaratively using Spring’s `@Transactional` mechanism at the service layer. This ensures that complex registration or authentication routines execute atomically, automatically committing successful changes or rolling back operations safely if errors occur.
+
+6. **Unique Constraints & Concurrency Handling**
+   Uniqueness for identifiers like `email` and `userID` is enforced dually: at the domain service level (via repository pre-checks) and at the relational database level (via unique constraints) to prevent race conditions during concurrent sign-ups.
 
 ### 3.3. Sequence Diagram (SD)
+
+![US008-SD.svg](US008_SD.svg)
 
 ---
 

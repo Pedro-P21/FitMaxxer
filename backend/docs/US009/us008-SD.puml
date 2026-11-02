@@ -1,0 +1,93 @@
+@startuml US008-Sequence-Diagram
+autonumber
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+actor "Flutter App" as Client
+participant "UserAuthController" as Controller
+participant "UserAuthService" as Service
+participant "PasswordEncoder\n(Spring Security)" as Security
+participant "UserFactory" as Factory
+participant "User\n(Domain Entity)" as User
+participant "UserRepository" as Repo
+participant "UserLoginMapper" as Mapper
+participant "UserLoginDTO" as DTO
+database "Database" as DB
+
+activate Client
+== User Registration (Sign Up) ==
+note over Controller: In form of DTO
+Client -> Controller : POST /api/auth/register (email, password, userID)
+activate Controller
+
+Controller -> Service : registerUser(email, password, userID)
+activate Service
+
+Service -> Repo : findByEmailOrUserId(email, userID)
+activate Repo
+Repo --> Service : optional User (empty)
+deactivate Repo
+
+Service -> Security : encode(password)
+activate Security
+Security --> Service : hashed-password
+deactivate Security
+Service --> Factory**: create()
+
+Service -> Factory: createNewUser(email, hashedPassword, userID)
+activate Factory
+note over User: Creation of entity envolves validation \nof Value Objects and data integrity
+Factory --> User**: create()
+activate User
+User --> Factory : valid User instance
+deactivate User
+Factory --> Service: user Instance
+deactivate Factory
+
+Service -> Repo : save(user)
+activate Repo
+Repo --> Service : saved User entity
+deactivate Repo
+
+Service --> Controller : success confirmation
+Controller --> Client : 201 Created
+
+deactivate Service
+deactivate Controller
+deactivate Client
+
+
+== User Login (Sign In) ==
+note over Controller: In form of DTO
+Client -> Controller : POST /api/auth/login (identifier, password)
+activate Client
+activate Controller
+
+Controller -> Service : authenticate(identifier, password)
+activate Service
+
+Service -> Repo : findByEmailOrUserId(identifier, identifier)
+activate Repo
+Repo --> Service : User entity
+deactivate Repo
+
+Service -> Security : matches(rawPassword, storedHash)
+activate Security
+Security --> Service : true
+deactivate Security
+
+Service -> Service : generateJwtToken(user)
+Service -> Mapper**: create()
+activate Mapper
+Mapper -> DTO: toDTO(token)
+Mapper --> Service: tokenDTO
+deactivate Mapper
+Service --> Controller : JWT Token DTO
+Controller --> Client : 200 OK (returns token)
+
+deactivate Service
+deactivate Controller
+deactivate Client
+
+@enduml

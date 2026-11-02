@@ -25,7 +25,7 @@ As a User, I want to log my personal data (age, weight, height, gender, activity
 
 ##### 1.4. Found out Dependencies
 
-- **US009 (Authentication and Account Management):** The user must be authenticated to associate the physical data log with their specific user profile.
+- **US008 (Authentication and Account Management):** The user must be authenticated to associate the physical data log with their specific user profile.
 
 ##### 1.5 Input and Output Data
 **Input Data:**
