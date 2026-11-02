@@ -47,6 +47,9 @@ As a User, I want to create an account and log in securely, so that my personal 
 ## 2. Analysis
 
 ### 2.1. Relevant Domain Model Excerpt
+
+![user-aggregate.svg](./../global-artifacts/domainModelExcerpts/user_auth_aggregate.svg)
+
 The following domain entities and value objects compose the `User Authentication Aggregate`:
 - `User` (Entity Root)
 - `UserId` (Value Object)

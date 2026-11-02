@@ -23,15 +23,10 @@ activate Controller
 
 Controller -> Service : registerUser(email, password, userID)
 activate Service
-
-Service -> Repo : findByEmailOrUserId(email, userID)
-activate Repo
-Repo --> Service : optional User (empty)
-deactivate Repo
-
 Service -> Security : encode(password)
 activate Security
 Security --> Service : hashed-password
+note over Service: The instance is created before to ensure \nattributes are within business constraints.
 deactivate Security
 Service --> Factory**: create()
 
@@ -45,6 +40,12 @@ deactivate User
 Factory --> Service: user Instance
 deactivate Factory
 
+Service -> Repo : findByEmailOrUserId(email, userID)
+activate Repo
+Repo --> Service : boolean
+deactivate Repo
+
+note over Service: Only if uniqueness verification\n passes is that value is saved
 Service -> Repo : save(user)
 activate Repo
 Repo --> Service : saved User entity
@@ -67,7 +68,7 @@ activate Controller
 Controller -> Service : authenticate(identifier, password)
 activate Service
 
-Service -> Repo : findByEmailOrUserId(identifier, identifier)
+Service -> Repo : findByIdentifier(identifier)
 activate Repo
 Repo --> Service : User entity
 deactivate Repo
