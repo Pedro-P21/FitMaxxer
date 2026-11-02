@@ -27,7 +27,7 @@ public class UserAuthService {
         String hashedPassword = passwordEncoder.encode(rawPassword);
         User provisionalUser = userFactory.createNewUser(rawEmail, hashedPassword, rawUserId);
 
-        boolean exists = userRepository.findByEmailOrUserId(
+        boolean exists = userRepository.existsByEmailOrUserId(
                 provisionalUser.getEmail(),
                 provisionalUser.getUserId()
         );
