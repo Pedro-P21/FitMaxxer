@@ -1,3 +1,80 @@
-@startuml
+@startuml US001-SD
+autonumber
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
 
+actor "User" as Actor
+participant "UI" as UI
+participant ":LogPersonalDataController" as Ctrl
+participant ":LogPersonalDataService" as Svc
+participant ":UserProfileFactory" as Factory
+participant ":UserProfileRepository" as UserRepo
+participant ":ValueObjects (PhysicalData\nand ActivityLevel" as VOs
+participant ":NutritionalGoalCalculatorService" as Calc
+participant ":UserNutritionalProfile" as Profile
+participant ":UserNutritionalProfileRepository" as Repo
+participant ":UserProfileMapper" as Mapper
+participant ":NutritionalGoalResponseDTO" as dto
+
+
+activate Actor
+Actor -> UI : submits personal data\n(age, weight, height, gender,\nactivity level, goal type, bodyFat (optional))
+activate UI
+
+UI -> Ctrl : logPersonalData(userId, PhysicalDTO)
+activate Ctrl
+
+Ctrl -> Svc : logPersonalData(userId, PhysicalDTO)
+activate Svc
+
+Svc -> UserRepo : findByUserId(userId)
+activate UserRepo
+UserRepo --> Svc : true
+deactivate UserRepo
+
+Svc -> Factory : createPhysicalData(PhysicalDTO)
+activate Factory
+Factory --> VOs** : create(age, weight,\nheight, gender, bodyFat, activityLevel)
+activate VOs
+VOs --> Factory: valid objects
+deactivate VOs
+note right
+  Create Only Value Objects
+  (PhysicalData and ActivityLevel)
+end note
+Factory --> Svc : physicalData, activityLevel
+deactivate Factory
+note right of Calc: refer to the document that\n specifies how calculation works
+Svc -> Calc : calculateGoal(physicalData, activityLevel, goalType)
+activate Calc
+Calc --> Svc : nutritionalGoal\n(CalorieTarget, MacroBreakdown)
+deactivate Calc
+
+Svc -> Factory: createUserNutritionalProfile(all previously created and validated value objects and userID)
+activate Factory
+Factory --> Profile**: create(all previously created and validated value objects and userID)
+Factory --> Svc: success
+deactivate Factory
+
+
+Svc -> Repo : save(profile)
+activate Repo
+Repo --> Svc : saved profile
+deactivate Repo
+
+Svc --> Mapper**: create()
+activate Mapper
+Mapper --> dto**: toDTO(confirmation + suggested goal)
+Mapper --> Svc: dto
+deactivate Mapper
+Svc --> Ctrl : DTO\n(confirmation + suggested goal)
+deactivate Svc
+
+Ctrl --> UI : DTO
+deactivate Ctrl
+
+UI --> Actor : confirms profile update\nand displays calculated goals
+deactivate UI
+deactivate Actor
 @enduml

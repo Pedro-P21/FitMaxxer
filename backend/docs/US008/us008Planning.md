@@ -48,7 +48,7 @@ As a User, I want to create an account and log in securely, so that my personal 
 
 ### 2.1. Relevant Domain Model Excerpt
 
-![user-aggregate.svg](./../global-artifacts/domainModelExcerpts/user_auth_aggregate.svg)
+![user-aggregate.svg](../global-artifacts/domainModel/domainModelExcerpts/user_auth_aggregate.svg)
 
 The following domain entities and value objects compose the `User Authentication Aggregate`:
 - `User` (Entity Root)
@@ -99,7 +99,7 @@ To justify the architectural and technical choices made for the authentication a
 
 ## 4. Tests
 
-Following Test-Driven Development (TDD), testing proceeds in a bottom-up approach from Value Objects up to Controllers.
+Testing proceeds in a bottom-up approach from Value Objects up to Controllers.
 
 ### 4.1. Domain Validations (Bottom-Up Approach)
 
