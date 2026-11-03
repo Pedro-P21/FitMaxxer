@@ -26,9 +26,19 @@ public class User {
     protected User() {}
 
     public User(Email email, Password password, UserId userId) {
-        this.email = Objects.requireNonNull(email, "Email must not be null");
-        this.password = Objects.requireNonNull(password, "Password must not be null");
-        this.userId = Objects.requireNonNull(userId, "UserId must not be null");
+        if (email == null) {
+            throw new IllegalArgumentException("Email must not be null");
+        }
+        if (password == null) {
+            throw new IllegalArgumentException("Password must not be null");
+        }
+        if (userId == null) {
+            throw new IllegalArgumentException("UserId must not be null");
+        }
+
+        this.email = email;
+        this.password = password;
+        this.userId = userId;
     }
 
     public Long getId() { return id; }
