@@ -33,16 +33,16 @@ public class PhysicalData {
         if (age <= 0 || age > 120) {
             throw new IllegalArgumentException("Age must be between 1 and 120 years.");
         }
-        if (weightKg <= 10 || weightKg > 635) {
-            throw new IllegalArgumentException("Weight must be between 20 kg and 635 kg.");
+        if (!Double.isFinite(weightKg) || weightKg <= 10 || weightKg > 635) {
+            throw new IllegalArgumentException("Weight must be between 10 kg and 635 kg.");
         }
-        if (heightCm <= 100 || heightCm > 250) {
+        if (!Double.isFinite(heightCm) || heightCm <= 100 || heightCm > 250) {
             throw new IllegalArgumentException("Height must be between 100 cm and 250 cm.");
         }
         if (gender == null || (!gender.equalsIgnoreCase("MALE") && !gender.equalsIgnoreCase("FEMALE"))) {
             throw new IllegalArgumentException("Gender must be either MALE or FEMALE.");
         }
-        if (bodyFat != null && (bodyFat < 3.0 || bodyFat > 80.0)) {
+        if (bodyFat != null && (!Double.isFinite(bodyFat) || bodyFat < 3.0 || bodyFat > 80.0)) {
             throw new IllegalArgumentException("Body fat percentage must be between 3% and 80%.");
         }
     }

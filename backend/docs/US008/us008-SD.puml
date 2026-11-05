@@ -5,90 +5,112 @@ skinparam packageStyle rectangle
 skinparam shadowing false
 
 actor "Flutter App" as Client
+participant "SecurityFilterChain" as SecurityChain
 participant "UserAuthController" as Controller
 participant "UserAuthService" as Service
-participant "PasswordEncoder\n(Spring Security)" as Security
+participant "PasswordEncoder\n(Spring Security / BCrypt)" as PasswordEncoder
 participant "UserFactory" as Factory
 participant "User\n(Domain Entity)" as User
 participant "UserRepository" as Repo
-participant "UserLoginMapper" as Mapper
-participant "UserLoginDTO" as DTO
+participant "JwtTokenService" as TokenService
+participant "JwtEncoder\n(Spring Security + Nimbus)" as JwtEncoder
+participant "UserAuthMapper" as Mapper
+participant "LoginResponseDTO" as DTO
 
+note over SecurityChain,JwtEncoder
+  Registration and login are public routes.
+  Other routes require a valid bearer access token.
+  The server loads its HMAC signing key from JWT_SECRET.
+end note
 
 activate Client
 == User Registration (Sign Up) ==
-note over Controller: In form of DTO
-Client -> Controller : POST /api/auth/register (email, password, userID)
+Client -> SecurityChain : POST /api/auth/register\n(email, password, userID)
+activate SecurityChain
+SecurityChain -> SecurityChain : allow public registration route
+SecurityChain -> Controller : forward registration request
+deactivate SecurityChain
 activate Controller
 
 Controller -> Service : registerUser(email, password, userID)
 activate Service
-Service -> Security : encode(password)
-activate Security
-Security --> Service : hashed-password
-note over Service: The instance is created before to ensure \nattributes are within business constraints.
-deactivate Security
-Service --> Factory**: create()
+Service -> PasswordEncoder : encode(password)
+activate PasswordEncoder
+PasswordEncoder --> Service : BCrypt password hash
+deactivate PasswordEncoder
 
-Service -> Factory: createNewUser(email, hashedPassword, userID)
+Service -> Factory : createNewUser(email, passwordHash, userID)
 activate Factory
-note over User: Creation of entity envolves validation \nof Value Objects and data integrity
-Factory --> User**: create()
+note over User: Construction validates the user andits value objects.
+Factory -> User : create user
 activate User
 User --> Factory : valid User instance
 deactivate User
-Factory --> Service: user Instance
+Factory --> Service : provisional user
 deactivate Factory
 
-Service -> Repo : findByEmailOrUserId(email, userID)
+Service -> Repo : existsByEmailOrUserId(email, userID)
 activate Repo
-Repo --> Service : boolean
+Repo --> Service : user ID and email are available
 deactivate Repo
 
-note over Service: Only if uniqueness verification\n passes is that value is saved
 Service -> Repo : save(user)
 activate Repo
 Repo --> Service : saved User entity
 deactivate Repo
-
-Service --> Controller : success confirmation
+Service --> Controller : registration complete
 Controller --> Client : 201 Created
-
 deactivate Service
 deactivate Controller
-deactivate Client
-
 
 == User Login (Sign In) ==
-note over Controller: In form of DTO
-Client -> Controller : POST /api/auth/login (identifier, password)
-activate Client
+Client -> SecurityChain : POST /api/auth/login\n(identifier, password)
+activate SecurityChain
+SecurityChain -> SecurityChain : allow public login route
+SecurityChain -> Controller : forward login request
+deactivate SecurityChain
 activate Controller
 
 Controller -> Service : authenticate(identifier, password)
 activate Service
-
 Service -> Repo : findByIdentifier(identifier)
 activate Repo
 Repo --> Service : User entity
 deactivate Repo
 
-Service -> Security : matches(rawPassword, storedHash)
-activate Security
-Security --> Service : true
-deactivate Security
+Service -> PasswordEncoder : matches(rawPassword, storedHash)
+activate PasswordEncoder
+PasswordEncoder --> Service : credentials match
+deactivate PasswordEncoder
 
-Service -> Service : generateJwtToken(user)
-Service -> Mapper**: create()
+Service -> TokenService : issueAccessToken(userID)
+activate TokenService
+TokenService -> JwtEncoder : sign HS256 access token
+activate JwtEncoder
+note right of JwtEncoder
+  iss = fitmaxxer-api
+  sub = stable user ID
+  aud = fitmaxxer-api
+  iat, exp = issued and expires times (15 minutes)
+  token_use = access
+end note
+JwtEncoder --> TokenService : signed JWT
+deactivate JwtEncoder
+TokenService --> Service : token string
+deactivate TokenService
+
+Service --> Controller : token string
+Controller -> Mapper : toDTO(token)
 activate Mapper
-Mapper -> DTO: toDTO(token)
-Mapper --> Service: tokenDTO
+Mapper -> DTO : create response\n(token, type = Bearer)
+activate DTO
+DTO --> Mapper : login response DTO
+deactivate DTO
+Mapper --> Controller : login response DTO
 deactivate Mapper
-Service --> Controller : JWT Token DTO
-Controller --> Client : 200 OK (returns token)
+Controller --> Client : 200 OK\n(token, type)
 
 deactivate Service
 deactivate Controller
 deactivate Client
-
 @enduml

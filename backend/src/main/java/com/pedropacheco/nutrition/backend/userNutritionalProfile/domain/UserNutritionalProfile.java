@@ -46,6 +46,16 @@ public class UserNutritionalProfile {
     public ActivityLevel getActivityLevel() { return activityLevel; }
     public NutritionalGoal getNutritionalGoal() { return nutritionalGoal; }
 
+    public void updateData(PhysicalData physicalData, ActivityLevel activityLevel, NutritionalGoal nutritionalGoal) {
+        if (physicalData == null) throw new IllegalArgumentException("PhysicalData cannot be null");
+        if (activityLevel == null) throw new IllegalArgumentException("ActivityLevel cannot be null");
+        if (nutritionalGoal == null) throw new IllegalArgumentException("NutritionalGoal cannot be null");
+
+        this.physicalData = physicalData;
+        this.activityLevel = activityLevel;
+        this.nutritionalGoal = nutritionalGoal;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

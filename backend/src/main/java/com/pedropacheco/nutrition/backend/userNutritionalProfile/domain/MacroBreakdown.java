@@ -30,6 +30,10 @@ public class MacroBreakdown {
             double carbsPercentage,
             double fatsPercentage
     ) {
+        validatePercentage("Protein", proteinPercentage);
+        validatePercentage("Carbohydrate", carbsPercentage);
+        validatePercentage("Fat", fatsPercentage);
+
         double totalPercentage = proteinPercentage + carbsPercentage + fatsPercentage;
         if (Math.abs(totalPercentage - 100.0) > 0.01) {
             throw new IllegalArgumentException("Macronutrient percentages must add up to 100%. Current sum: " + totalPercentage + "%");
@@ -44,6 +48,12 @@ public class MacroBreakdown {
                 carbsCalories / 4,
                 fatsCalories / 9
         );
+    }
+
+    private static void validatePercentage(String name, double percentage) {
+        if (!Double.isFinite(percentage) || percentage < 0.0 || percentage > 100.0) {
+            throw new IllegalArgumentException(name + " percentage must be between 0% and 100%.");
+        }
     }
 
     public int getProteinGrams() { return proteinGrams; }

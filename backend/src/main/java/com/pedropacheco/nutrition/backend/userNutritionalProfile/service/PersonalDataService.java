@@ -11,6 +11,8 @@ import com.pedropacheco.nutrition.backend.userNutritionalProfile.repository.User
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Service
 public class PersonalDataService {
 
@@ -54,12 +56,19 @@ public class PersonalDataService {
         );
 
 
-        UserNutritionalProfile profile = userProfileFactory.createUserNutritionalProfile(
-                businessUserId,
-                physicalData,
-                activityLevel,
-                nutritionalGoal
-        );
+        Optional<UserNutritionalProfile> existingProfile = userProfileRepository.findByUserId(businessUserId);
+        UserNutritionalProfile profile;
+        if (existingProfile.isPresent()) {
+            profile = existingProfile.get();
+            profile.updateData(physicalData, activityLevel, nutritionalGoal);
+        } else {
+            profile = userProfileFactory.createUserNutritionalProfile(
+                    businessUserId,
+                    physicalData,
+                    activityLevel,
+                    nutritionalGoal
+            );
+        }
 
         UserNutritionalProfile savedProfile = userProfileRepository.save(profile);
 
