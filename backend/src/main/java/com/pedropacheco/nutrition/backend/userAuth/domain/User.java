@@ -18,7 +18,7 @@ public class User {
     private Password password;
 
     @Embedded
-    @AttributeOverride(name = "value", column = @Column(name = "user_id", nullable = false, unique = true))
+    @AttributeOverride(name = "value", column = @Column(name = "userid", nullable = false, unique = true))
     private UserId userId;
 
     protected User() {}
