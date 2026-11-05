@@ -55,7 +55,7 @@ As a User, I want to log my personal data (age, weight, height, gender, activity
 ### 2.1. Relevant Domain Model Excerpt
 The following diagram illustrates the `User` and `UserProfile` aggregate components designed to handle physical data while maintaining domain boundaries.
 
-![user-profile-aggregate.svg](../global-artifacts/domainModel/domainModelExcerpts/user_nutritional_profile_aggregate.svg)
+![user_nutritional_profile_aggregate.svg](../global-artifacts/domainModel/domainModelExcerpts/user_nutritional_profile_aggregate.svg)
 
 ## 3. Design
 

@@ -11,16 +11,20 @@ public class TerminalRunner implements CommandLineRunner {
 
     private final UserAuthService authService;
     private final FitMaxxerMainMenu mainMenu;
+    private final CreateUserNutritionalProfileUI createUserNutritionalProfileUI;
 
-    public TerminalRunner(UserAuthService authService, FitMaxxerMainMenu mainMenu) {
+    public TerminalRunner(UserAuthService authService, FitMaxxerMainMenu mainMenu,
+                          CreateUserNutritionalProfileUI createUserNutritionalProfileUI) {
         this.authService = authService;
         this.mainMenu = mainMenu;
+        this.createUserNutritionalProfileUI = createUserNutritionalProfileUI;
     }
 
     @Override
     public void run(String... args) {
         Scanner scanner = new Scanner(System.in);
         boolean running = true;
+        String token = null;
 
         System.out.println("----------------------------------------");
         System.out.println(" FitMaxxer - Auth Terminal Runner");
@@ -47,6 +51,12 @@ public class TerminalRunner implements CommandLineRunner {
 
                         authService.registerUser(regEmail, regPass, regUserId);
                         System.out.println("[SUCCESS] User registered successfully.");
+
+                        createUserNutritionalProfileUI.show(regUserId);
+
+                        token = authService.authenticate(regEmail, regPass);
+                        System.out.println("[SUCCESS] Login successful.");
+                        mainMenu.show(token);
                         break;
 
                     case "2":
@@ -55,10 +65,9 @@ public class TerminalRunner implements CommandLineRunner {
                         System.out.print("Enter password: ");
                         String loginPass = scanner.nextLine();
 
-                        String token = authService.authenticate(identifier, loginPass);
+                        token = authService.authenticate(identifier, loginPass);
                         System.out.println("[SUCCESS] Login successful.");
 
-                        // Transition to the Main Menu after successful login
                         mainMenu.show(token);
 
                         System.out.println("\nReturned to authentication menu.");
@@ -66,7 +75,8 @@ public class TerminalRunner implements CommandLineRunner {
 
                     case "3":
                         running = false;
-                        System.out.println("Shutting down application.");
+                        System.out.println("Shutting down application...");
+                        System.exit(0);
                         break;
 
                     default:

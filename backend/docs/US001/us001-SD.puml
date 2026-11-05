@@ -6,14 +6,14 @@ skinparam shadowing false
 
 actor "User" as Actor
 participant "UI" as UI
-participant ":LogPersonalDataController" as Ctrl
-participant ":LogPersonalDataService" as Svc
-participant ":UserProfileFactory" as Factory
-participant ":UserProfileRepository" as UserRepo
-participant ":ValueObjects (PhysicalData\nand ActivityLevel" as VOs
+participant ":PersonalDataController" as Ctrl
+participant ":PersonalDataService" as Svc
+participant ":UserRepository" as UserRepo
 participant ":NutritionalGoalCalculatorService" as Calc
+participant ":UserProfileFactory" as Factory
+participant ":ValueObjects (PhysicalData\nand ActivityLevel" as VOs
 participant ":UserNutritionalProfile" as Profile
-participant ":UserNutritionalProfileRepository" as Repo
+participant ":UserProfileRepository" as Repo
 participant ":UserProfileMapper" as Mapper
 participant ":NutritionalGoalResponseDTO" as dto
 
@@ -48,7 +48,11 @@ deactivate Factory
 note right of Calc: refer to the document that\n specifies how calculation works
 Svc -> Calc : calculateGoal(physicalData, activityLevel, goalType)
 activate Calc
-Calc --> Svc : nutritionalGoal\n(CalorieTarget, MacroBreakdown)
+Calc --> Factory: createNutritionalGoal(maintenanceCalories, calorieTarget, macroBreakdown)
+activate Factory
+Factory --> Calc: nutritionalGoal
+deactivate Factory
+Calc --> Svc : nutritionalGoal
 deactivate Calc
 
 Svc -> Factory: createUserNutritionalProfile(all previously created and validated value objects and userID)

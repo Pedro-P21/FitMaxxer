@@ -37,3 +37,4 @@ out/
 .vscode/
 /data/fitmaxxerdb.mv.db
 /data/fitmaxxerdb.trace.db
+/data/fitmaxxerdb.lock.db

@@ -19,9 +19,8 @@ package "User Profile Aggregate" {
     class PhysicalData <<Value Object>> {}
     class ActivityLevel <<Value Object>> {}
     class NutritionalGoal <<Entity>> {}
-    class CalorieTarget <<Value Object>> {}
     class MacroBreakdown <<Value Object>> {}
-    class MaintenanceCalories <<Value Object>> {}
+
 }
 
 package "Food Catalog Aggregate" {
@@ -65,9 +64,7 @@ UserNutritionalProfile "1" *-- "0..1" PhysicalData
 UserNutritionalProfile "1" *-- "0..1" ActivityLevel
 UserNutritionalProfile "1" *-- "0..1" NutritionalGoal
 
-NutritionalGoal "1" *-- "1" CalorieTarget
 NutritionalGoal "1" *-- "1" MacroBreakdown
-NutritionalGoal "1" *-- "1" MaintenanceCalories
 
 FoodItem "1" *-- "1" FoodId
 FoodItem "1" *-- "1" FoodName
