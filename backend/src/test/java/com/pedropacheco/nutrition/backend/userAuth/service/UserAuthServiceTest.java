@@ -6,6 +6,7 @@ import com.pedropacheco.nutrition.backend.userAuth.domain.User;
 import com.pedropacheco.nutrition.backend.userAuth.domain.UserId;
 import com.pedropacheco.nutrition.backend.userAuth.factory.UserFactory;
 import com.pedropacheco.nutrition.backend.userAuth.repository.UserRepository;
+import com.pedropacheco.nutrition.backend.userAuth.service.JwtTokenService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -31,6 +32,9 @@ class UserAuthServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private JwtTokenService jwtTokenService;
 
     @InjectMocks
     private UserAuthService userAuthService;
@@ -91,15 +95,17 @@ class UserAuthServiceTest {
         // Arrange
         when(userRepository.findByIdentifier("test@example.com")).thenReturn(Optional.of(mockUser));
         when(passwordEncoder.matches("Password123!", "hashed_password_123")).thenReturn(true);
+        when(jwtTokenService.issueAccessToken("user123")).thenReturn("signed-access-token");
 
         // Act
         String token = userAuthService.authenticate("test@example.com", "Password123!");
 
         // Assert
         assertNotNull(token);
-        assertEquals("mock-jwt-token-for-user123", token);
+        assertEquals("signed-access-token", token);
         verify(userRepository, times(1)).findByIdentifier("test@example.com");
         verify(passwordEncoder, times(1)).matches("Password123!", "hashed_password_123");
+        verify(jwtTokenService).issueAccessToken("user123");
     }
 
     @Test

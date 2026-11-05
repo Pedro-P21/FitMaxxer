@@ -15,11 +15,14 @@ public class UserAuthService {
     private final UserRepository userRepository;
     private final UserFactory userFactory;
     private final PasswordEncoder passwordEncoder;
+    private final JwtTokenService jwtTokenService;
 
-    public UserAuthService(UserRepository userRepository, UserFactory userFactory, PasswordEncoder passwordEncoder) {
+    public UserAuthService(UserRepository userRepository, UserFactory userFactory, PasswordEncoder passwordEncoder,
+                           JwtTokenService jwtTokenService) {
         this.userRepository = userRepository;
         this.userFactory = userFactory;
         this.passwordEncoder = passwordEncoder;
+        this.jwtTokenService = jwtTokenService;
     }
 
     @Transactional
@@ -49,10 +52,6 @@ public class UserAuthService {
             throw new BadCredentialsException("Invalid credentials.");
         }
 
-        return generateJwtToken(user);
-    }
-
-    private String generateJwtToken(User user) {
-        return "mock-jwt-token-for-" + user.getUserId().getValue();
+        return jwtTokenService.issueAccessToken(user.getUserId().getValue());
     }
 }

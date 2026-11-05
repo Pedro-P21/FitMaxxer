@@ -38,3 +38,9 @@ out/
 /data/fitmaxxerdb.mv.db
 /data/fitmaxxerdb.trace.db
 /data/fitmaxxerdb.lock.db
+
+# Local secrets and environment files
+/.env
+/.env.*
+!/.env.example
+/secrets/
