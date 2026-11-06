@@ -1,0 +1,95 @@
+@startuml US002-SD
+autonumber
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+actor "User" as Actor
+participant "Flutter App" as UI
+participant ":JWT Authentication Filter" as Auth
+participant ":EditUserNutritionalProfileController" as Ctrl
+participant ":EditUserNutritionalProfileService" as Svc
+participant ":UserNutritionalProfileRepository" as ProfileRepo
+participant ":UserProfileFactory" as UserProfileFactory
+participant ":NutritionalGoalCalculatorService" as Calc
+participant ":NutritionalGoalFactory" as GoalFactory
+participant ":UserNutritionalProfileFactory" as ProfileFactory
+participant ":UserNutritionalProfileMapper" as Mapper
+participant ":UserNutritionalProfile" as Profile
+
+
+activate Actor
+Actor -> UI : selects one or more profile items to edit
+activate UI
+UI -> UI : edits selected values and confirms changes
+UI -> Auth : PUT /api/profiles\nAuthorization: Bearer <access-token>\n(body: selected PhysicalData, ActivityLevel, CaloricTarget, and/or MacroBreakdown changes)
+activate Auth
+
+Auth -> Auth : validate token and build principal from sub
+Auth -> Ctrl : forward request with authenticated principal
+activate Ctrl
+deactivate Auth
+
+Ctrl -> Svc : editProfile(userId, changesDTO)
+activate Svc
+
+Svc -> ProfileRepo : findByUserId(userId)
+activate ProfileRepo
+ProfileRepo --> Svc : existing profile
+deactivate ProfileRepo
+
+Svc -> UserProfileFactory : createObjects(changesDTO)
+activate UserProfileFactory
+note right of UserProfileFactory
+  Create the necessary value objects
+end note
+UserProfileFactory --> Svc : validated value objects
+deactivate UserProfileFactory
+
+alt PhysicalData and/or ActivityLevel changed
+  Svc -> Calc : calculateGoal(updatedPhysicalData, updatedActivityLevel, goalType)
+  activate Calc
+  Calc --> Svc : recalculated nutritional goal
+  deactivate Calc
+
+  opt CaloricTarget and/or MacroBreakdown also changed
+    Svc -> GoalFactory : create updated goal using recalculated and confirmed goal values
+    activate GoalFactory
+    GoalFactory --> Svc : validated nutritional goal
+    deactivate GoalFactory
+  end
+
+  Svc -> ProfileFactory : create new profile(updatedPhysicalData, updatedActivityLevel, nutritionalGoal)
+  activate ProfileFactory
+  ProfileFactory --> Svc : new UserNutritionalProfile
+  deactivate ProfileFactory
+else Only CaloricTarget and/or MacroBreakdown changed
+  Svc -> GoalFactory : create updated goal from existing goal and confirmed changes
+  activate GoalFactory
+  GoalFactory --> Svc : validated nutritional goal
+  deactivate GoalFactory
+
+  Svc -> Profile : replaceNutritionalGoal(nutritionalGoal)
+  activate Profile
+  Profile --> Svc : updated profile
+  deactivate Profile
+end
+
+Svc -> ProfileRepo : save(resultingProfile)
+activate ProfileRepo
+ProfileRepo --> Svc : saved profile
+deactivate ProfileRepo
+
+Svc -> Mapper : toDTO(savedProfile, confirmation)
+activate Mapper
+Mapper --> Svc : response DTO with updated profile and goals
+deactivate Mapper
+
+Svc --> Ctrl : response DTO
+deactivate Svc
+Ctrl --> UI : 200 OK + response DTO
+deactivate Ctrl
+UI --> Actor : displays updated profile and goals
+deactivate UI
+deactivate Actor
+@enduml

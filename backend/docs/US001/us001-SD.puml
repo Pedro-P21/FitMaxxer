@@ -32,10 +32,10 @@ Auth -> Ctrl : forward request with authenticated principal
 activate Ctrl
 deactivate Auth
 
-Ctrl -> Svc : logPersonalData(principal.userId, requestDTO)
+Ctrl -> Svc : logPersonalData(userId, requestDTO)
 activate Svc
 
-Svc -> UserRepo : existsByUserId(principal.userId)
+Svc -> UserRepo : existsByUserId(userId)
 activate UserRepo
 UserRepo --> Svc : user exists
 deactivate UserRepo
