@@ -2,6 +2,7 @@ package com.pedropacheco.nutrition.backend.cli;
 
 import com.pedropacheco.nutrition.backend.userAuth.service.UserAuthService;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.stereotype.Component;
 
 import java.util.Scanner;
@@ -12,12 +13,15 @@ public class TerminalRunner implements CommandLineRunner {
     private final UserAuthService authService;
     private final FitMaxxerMainMenu mainMenu;
     private final CreateUserNutritionalProfileUI createUserNutritionalProfileUI;
+    private final JwtDecoder jwtDecoder;
 
     public TerminalRunner(UserAuthService authService, FitMaxxerMainMenu mainMenu,
-                          CreateUserNutritionalProfileUI createUserNutritionalProfileUI) {
+                          CreateUserNutritionalProfileUI createUserNutritionalProfileUI,
+                          JwtDecoder jwtDecoder) {
         this.authService = authService;
         this.mainMenu = mainMenu;
         this.createUserNutritionalProfileUI = createUserNutritionalProfileUI;
+        this.jwtDecoder = jwtDecoder;
     }
 
     @Override
@@ -52,11 +56,11 @@ public class TerminalRunner implements CommandLineRunner {
                         authService.registerUser(regEmail, regPass, regUserId);
                         System.out.println("[SUCCESS] User registered successfully.");
 
-                        createUserNutritionalProfileUI.show(regUserId);
+                        createUserNutritionalProfileUI.show(regUserId, scanner);
 
                         token = authService.authenticate(regEmail, regPass);
                         System.out.println("[SUCCESS] Login successful.");
-                        mainMenu.show(token);
+                        mainMenu.show(regUserId, scanner);
                         break;
 
                     case "2":
@@ -68,7 +72,8 @@ public class TerminalRunner implements CommandLineRunner {
                         token = authService.authenticate(identifier, loginPass);
                         System.out.println("[SUCCESS] Login successful.");
 
-                        mainMenu.show(token);
+                        String userId = jwtDecoder.decode(token).getSubject();
+                        mainMenu.show(userId, scanner);
 
                         System.out.println("\nReturned to authentication menu.");
                         break;

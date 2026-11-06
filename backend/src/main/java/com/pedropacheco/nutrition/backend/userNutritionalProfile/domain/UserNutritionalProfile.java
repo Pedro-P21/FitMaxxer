@@ -56,6 +56,12 @@ public class UserNutritionalProfile {
         this.nutritionalGoal = nutritionalGoal;
     }
 
+    /** Replaces manually edited or recalculated nutritional targets on this aggregate. */
+    public void replaceNutritionalGoal(NutritionalGoal nutritionalGoal) {
+        if (nutritionalGoal == null) throw new IllegalArgumentException("NutritionalGoal cannot be null");
+        this.nutritionalGoal = nutritionalGoal;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

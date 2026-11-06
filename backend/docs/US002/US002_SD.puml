@@ -12,8 +12,6 @@ participant ":EditUserNutritionalProfileService" as Svc
 participant ":UserNutritionalProfileRepository" as ProfileRepo
 participant ":UserProfileFactory" as UserProfileFactory
 participant ":NutritionalGoalCalculatorService" as Calc
-participant ":NutritionalGoalFactory" as GoalFactory
-participant ":UserNutritionalProfileFactory" as ProfileFactory
 participant ":UserNutritionalProfileMapper" as Mapper
 participant ":UserNutritionalProfile" as Profile
 
@@ -53,21 +51,21 @@ alt PhysicalData and/or ActivityLevel changed
   deactivate Calc
 
   opt CaloricTarget and/or MacroBreakdown also changed
-    Svc -> GoalFactory : create updated goal using recalculated and confirmed goal values
-    activate GoalFactory
-    GoalFactory --> Svc : validated nutritional goal
-    deactivate GoalFactory
+    Svc -> UserProfileFactory : create updated goal using recalculated and confirmed goal values
+    activate UserProfileFactory
+    UserProfileFactory --> Svc : validated nutritional goal
+    deactivate UserProfileFactory
   end
 
-  Svc -> ProfileFactory : create new profile(updatedPhysicalData, updatedActivityLevel, nutritionalGoal)
-  activate ProfileFactory
-  ProfileFactory --> Svc : new UserNutritionalProfile
-  deactivate ProfileFactory
+  Svc -> UserProfileFactory : create new profile(updatedPhysicalData, updatedActivityLevel, nutritionalGoal)
+  activate UserProfileFactory
+  UserProfileFactory --> Svc : new UserNutritionalProfile
+  deactivate UserProfileFactory
 else Only CaloricTarget and/or MacroBreakdown changed
-  Svc -> GoalFactory : create updated goal from existing goal and confirmed changes
-  activate GoalFactory
-  GoalFactory --> Svc : validated nutritional goal
-  deactivate GoalFactory
+  Svc -> UserProfileFactory : create updated goal from existing goal and confirmed changes
+  activate UserProfileFactory
+  UserProfileFactory --> Svc : validated nutritional goal
+  deactivate UserProfileFactory
 
   Svc -> Profile : replaceNutritionalGoal(nutritionalGoal)
   activate Profile

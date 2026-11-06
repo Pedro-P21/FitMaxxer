@@ -16,9 +16,7 @@ public class CreateUserNutritionalProfileUI {
         this.personalDataService = personalDataService;
     }
 
-    public void show(String userId) {
-        Scanner scanner = new Scanner(System.in);
-
+    public void show(String userId, Scanner scanner) {
         System.out.println("\n=== FitMaxxer - Create Nutritional Profile (US001) ===");
 
         try {
