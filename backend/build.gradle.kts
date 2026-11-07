@@ -29,6 +29,9 @@ dependencies {
     implementation("org.springframework.security:spring-security-oauth2-resource-server")
     implementation("org.springframework.security:spring-security-oauth2-jose")
     implementation("org.springframework.boot:spring-boot-starter-json")
+    implementation ("org.springframework.boot:spring-boot-starter-cache")
+    implementation ("com.github.ben-manes.caffeine:caffeine")
+
 
     runtimeOnly("com.h2database:h2")
     runtimeOnly("org.postgresql:postgresql")
