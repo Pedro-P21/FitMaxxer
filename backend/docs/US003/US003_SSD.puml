@@ -1,0 +1,29 @@
+@startuml US003-SSD
+autonumber
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+actor "User" as Actor
+participant "UI" as UI
+participant "System" as System
+
+activate Actor
+Actor -> UI : searches for food item\n(keyword or barcode)
+activate UI
+
+UI -> System : searchFood(query)
+activate System
+
+System --> UI : list of matching food items\n(name, barcode, serving size, nutrients)
+deactivate System
+
+UI --> Actor : displays search results
+deactivate UI
+
+Actor -> UI : selects a food item for details/logging
+activate UI
+UI --> Actor : displays selected food item details
+deactivate UI
+deactivate Actor
+@enduml

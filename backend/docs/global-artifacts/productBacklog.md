@@ -29,3 +29,6 @@ As a User, I want to be able to edit or delete items I previously logged in a me
 
 ## US010. Meal Duplication
 As a User, I want to be able to copy a meal from a previous day into my current day, so that I can save time logging repetitive meals (like breakfast or snacks).
+
+## US011. Barcode Scanning
+As a User, I want to be able to scan a barcode to log food items quickly.
