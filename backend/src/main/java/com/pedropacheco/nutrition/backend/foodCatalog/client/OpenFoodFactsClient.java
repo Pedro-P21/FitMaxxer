@@ -61,10 +61,47 @@ public class OpenFoodFactsClient {
                 .uri("/api/v3.6/product/{barcode}.json?fields={fields}", barcode, FIELDS)
                 .headers(this::applyStagingAuth)
                 .retrieve().body(OpenFoodFactsProductResponseDTO.class);
-        if (response == null || response.getStatus() != 1) {
+        if (response == null || !isSuccessfulStatus(response.getStatus())) {
             return null;
         }
-        return response.getProduct();
+        OpenFoodFactsProductDTO product = response.getProduct();
+        if (hasRequiredNutrients(product)) {
+            return product;
+        }
+
+        // v3.6 currently returns an empty nutriments object for some products
+        // even though the same records have nutrition in v2 and keyword search.
+        OpenFoodFactsProductResponseDTO legacyResponse = restClient.get()
+                .uri("/api/v2/product/{barcode}.json?fields={fields}", barcode, FIELDS)
+                .headers(this::applyStagingAuth)
+                .retrieve().body(OpenFoodFactsProductResponseDTO.class);
+        if (legacyResponse == null || !isSuccessfulStatus(legacyResponse.getStatus())) {
+            return product;
+        }
+        OpenFoodFactsProductDTO legacyProduct = legacyResponse.getProduct();
+        return hasRequiredNutrients(legacyProduct) ? legacyProduct : product;
+    }
+
+    private boolean hasRequiredNutrients(OpenFoodFactsProductDTO product) {
+        if (product == null || product.getNutriments() == null) {
+            return false;
+        }
+        var nutrients = product.getNutriments();
+        if ("serving".equalsIgnoreCase(product.getNutritionDataPer())) {
+            return nutrients.getEnergyKcalPerServing() != null
+                    && nutrients.getProteinsPerServing() != null
+                    && nutrients.getCarbohydratesPerServing() != null
+                    && nutrients.getFatPerServing() != null;
+        }
+        return nutrients.getEnergyKcalPer100g() != null
+                && nutrients.getProteinsPer100g() != null
+                && nutrients.getCarbohydratesPer100g() != null
+                && nutrients.getFatPer100g() != null;
+    }
+
+    private boolean isSuccessfulStatus(Object status) {
+        return status != null && ("success".equalsIgnoreCase(status.toString())
+                || "1".equals(status.toString()));
     }
 
     private void applyStagingAuth(HttpHeaders headers) {
