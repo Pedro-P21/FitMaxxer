@@ -1,0 +1,32 @@
+@startuml "user-auth-aggregate"
+
+top to bottom direction
+skinparam linetype ortho
+hide circle
+skinparam nodesep 40
+skinparam ranksep 80
+skinparam padding 10
+
+package "Meal & Daily Log Aggregate" {
+    class DailyLog <<Entity Root>> {}
+    class DailyLogId <<Value Object>>  {}
+    class LogDate <<Value Object>> {}
+    class Meal <<Entity>> {}
+    class MealType <<Value Object>> {}
+    class MealItem <<Entity>> {}
+    class PortionQuantity <<Value Object>> {}
+}
+
+DailyLog "1" *-- "1" DailyLogId
+DailyLog "1" *-- "1" LogDate
+DailyLog "1" --> "1" User : "belongs to"
+DailyLog "1" *-- "0..*" Meal
+
+Meal "1" *-- "1" MealType
+Meal "1" *-- "0..*" MealItem
+
+MealItem "1" *-- "1" PortionQuantity
+
+
+@enduml
+

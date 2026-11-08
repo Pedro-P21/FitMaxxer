@@ -44,7 +44,8 @@ As a User, I want to be able to search through a catalog of multiple foods, so t
 - Error or empty state messages when searches yield no results or upstream APIs fail.
 
 ##### 1.6. System Sequence Diagram
-*(Placeholder for US003-SSD.svg)*
+![US003_SSD.svg](US003_SSD.svg)
+
 
 ##### 1.7. Assumptions and Decisions
 - External API responses will be mapped to internal domain value objects/DTOs to avoid tight coupling with third-party schemas.
@@ -71,7 +72,7 @@ As a User, I want to be able to search through a catalog of multiple foods, so t
 2. **Resilience & Fault Tolerance:** Integration with external APIs includes timeout configurations and exception handling so that a failure in one provider does not crash the entire search transaction.
 
 ### 3.3. Sequence Diagram (SD)
-*(Placeholder for US003-SD.svg)*
+![US003_SD.svg](US003_SD.svg)
 
 
 ## 4. External Food Catalog APIs & Multi-Source Architecture
@@ -109,6 +110,8 @@ Unified FoodCatalogResponseDTO -> Returned to User/UI
 - Test aggregator behavior when all APIs succeed.
 - Test graceful degradation when one or more external API clients time out or return errors.
 - Test DTO mapping consistency across different source payloads.
+- Test Open Food Facts barcode response parsing and the nutrition-data fallback.
+- An opt-in live test verifies barcode `5601312507994` through the client, adapter, and domain mapper (`OPENFOODFACTS_LIVE=true`).
 
 
 ## 6. Implementation
@@ -128,3 +131,9 @@ Unified FoodCatalogResponseDTO -> Returned to User/UI
 | `FoodCatalogAggregatorService`  | `search(query)`     | Coordinates concurrent calls across all API adapters and merges results.     |
 | `OpenFoodFactsAdapter` (et al.) | `fetchFoods(query)` | Communicates with the specific external API and maps raw data.               |
 | `FoodItemDTO`                   | N/A                 | Represents the unified, standardized food item structure across all sources. |
+
+### 6.3. Open Food Facts Barcode Lookup Notes
+- The v3.6 product endpoint returns `status: "success"`; the response DTO accepts this string and the legacy numeric status `1`.
+- Some v3.6 product responses have an empty `nutriments` object even when the same product has nutrition data in Open Food Facts keyword search and v2.
+- `OpenFoodFactsClient.findByBarcode` checks for the four required macronutrient values in the product's declared basis. If they are missing, it retries the lookup against the v2 product endpoint and uses that product when the required values are present. This preserves the v3.6 lookup while handling records whose nutrition is only available through v2.
+- Verified with barcode `5601312507994` (Leite Magro, Continente Equilíbrio): v3.6 returned product metadata and serving size but empty nutrients; v2 returned calories, protein, carbohydrates, and fat. The live end-to-end test confirms the adapter maps it into a `FoodItem` with the expected barcode and 35 kcal.
