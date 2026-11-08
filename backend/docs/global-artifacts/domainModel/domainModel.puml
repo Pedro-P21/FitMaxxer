@@ -26,10 +26,11 @@ package "User Profile Aggregate" {
 package "Food Catalog Aggregate" {
     class FoodItem <<Entity Root>> {}
     class FoodId <<Value Object>>  {}
-    class FoodName <<Value Object>> {}
+    class ProductName <<Value Object>> {}
     class Barcode <<Value Object>> {}
-    class NutrientComposition <<Value Object>> {}
+    class NutrientComposition <<Entity>> {}
     class ServingSize <<Value Object>> {}
+    class Brand <<Value Object>>{}
 }
 
 package "Recipe & Custom Food Aggregate" {
@@ -67,10 +68,11 @@ UserNutritionalProfile "1" *-- "0..1" NutritionalGoal
 NutritionalGoal "1" *-- "1" MacroBreakdown
 
 FoodItem "1" *-- "1" FoodId
-FoodItem "1" *-- "1" FoodName
+FoodItem "1" *-- "1" ProductName
 FoodItem "1" *-- "0..1" Barcode
 FoodItem "1" *-- "1" NutrientComposition
 FoodItem "1" *-- "1" ServingSize
+FoodItem "1" *-- "1" Brand
 
 CustomRecipe "1" *-- "1" RecipeId
 CustomRecipe "1" *-- "1" RecipeName
