@@ -32,3 +32,6 @@ As a User, I want to be able to copy a meal from a previous day into my current 
 
 ## US011. Barcode Scanning
 As a User, I want to be able to scan a barcode to log food items quickly.
+
+## US012. Flexible Portion Quantities
+As a User, I want to log food in quantities such as grams, milliliters, item counts, or custom servings, so that my calorie and macronutrient totals reflect the amount I actually consumed.
