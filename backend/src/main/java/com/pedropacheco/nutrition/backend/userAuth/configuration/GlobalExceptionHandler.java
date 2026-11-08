@@ -2,6 +2,7 @@ package com.pedropacheco.nutrition.backend.userAuth.configuration;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import com.pedropacheco.nutrition.backend.foodCatalog.service.FoodCatalogException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.util.PlaceholderResolutionException;
@@ -10,6 +11,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(FoodCatalogException.class)
+    public ResponseEntity<String> handleFoodCatalogFailure(FoodCatalogException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body("Food catalog is temporarily unavailable. Please try again later.");
+    }
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<String> handleBadCredentialsException(BadCredentialsException ex) {

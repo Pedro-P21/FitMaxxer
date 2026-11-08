@@ -12,11 +12,15 @@ public class FitMaxxerMainMenu {
     private static final int LOG_MEAL_OPTION = 2;
     private static final int VIEW_NUTRITION_PLAN_OPTION = 3;
     private static final int EDIT_NUTRITIONAL_PROFILE_OPTION = 4;
+    private static final int SEARCH_FOOD_OPTION = 5;
 
     private final UpdateUserNutritionalProfileUI updateUserNutritionalProfileUI;
+    private final FoodCatalogSearchUI foodCatalogSearchUI;
 
-    public FitMaxxerMainMenu(UpdateUserNutritionalProfileUI updateUserNutritionalProfileUI) {
+    public FitMaxxerMainMenu(UpdateUserNutritionalProfileUI updateUserNutritionalProfileUI,
+                             FoodCatalogSearchUI foodCatalogSearchUI) {
         this.updateUserNutritionalProfileUI = updateUserNutritionalProfileUI;
+        this.foodCatalogSearchUI = foodCatalogSearchUI;
     }
 
     public void show(String userId, Scanner scanner) {
@@ -33,6 +37,7 @@ public class FitMaxxerMainMenu {
             System.out.println(LOG_MEAL_OPTION + ". Log Meal");
             System.out.println(VIEW_NUTRITION_PLAN_OPTION + ". View Nutrition Plan");
             System.out.println(EDIT_NUTRITIONAL_PROFILE_OPTION + ". Edit Nutritional Profile");
+            System.out.println(SEARCH_FOOD_OPTION + ". Search Food Catalog");
             System.out.println(EXIT_OPTION + ". Logout & Exit");
             System.out.print("Choice: " );
 
@@ -50,6 +55,9 @@ public class FitMaxxerMainMenu {
                     break;
                 case "4":
                     updateUserNutritionalProfileUI.show(userId, scanner);
+                    break;
+                case "5":
+                    foodCatalogSearchUI.show(scanner);
                     break;
                 case "0":
                     System.out.println("[INFO] Logging out. Returning to authentication menu...");
