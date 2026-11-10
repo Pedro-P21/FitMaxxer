@@ -44,6 +44,8 @@ package "Meal & Daily Log Aggregate" {
     class DailyLog <<Entity Root>> {}
     class DailyLogId <<Value Object>>  {}
     class LogDate <<Value Object>> {}
+    class DailyGoalSnapshot <<Value Object>> {}
+    class DailyNutritionSummary <<Value Object>> {}
     class Meal <<Entity>> {}
     class MealType <<Value Object>> {}
     class MealItem <<Entity>> {}
@@ -82,6 +84,8 @@ CustomRecipe "1" --> "1" User : "created by"
 
 DailyLog "1" *-- "1" DailyLogId
 DailyLog "1" *-- "1" LogDate
+DailyLog "1" *-- "1" DailyGoalSnapshot : "targets for this day"
+DailyLog ..> DailyNutritionSummary : "calculates and returns"
 DailyLog "1" --> "1" User : "belongs to"
 DailyLog "1" *-- "0..*" Meal
 DailyLog "1" --> "1" UserNutritionalProfile: "references"

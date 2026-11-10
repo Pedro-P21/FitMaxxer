@@ -11,6 +11,8 @@ participant ":DailyLogController" as Ctrl
 participant ":DailyLogApplicationService" as Svc
 participant ":DailyLogRepository" as LogRepo
 participant ":UserNutritionalProfileRepository" as ProfileRepo
+participant ":DailyLog" as DailyLog
+participant ":DailyNutritionSummary" as Summary
 participant ":DailyLogMapper" as Mapper
 participant ":DailyLogResponseDTO" as ResponseDTO
 
@@ -33,9 +35,17 @@ LogRepo --> Svc : Optional<DailyLog>
 deactivate LogRepo
 
 alt DailyLog exists
-  Svc -> Mapper : toResponseDTO(dailyLog)
+  Svc -> DailyLog : calculateNutritionSummary()
+  activate DailyLog
+  DailyLog -> Summary : create from meal totals and goal snapshot
+  activate Summary
+  Summary --> DailyLog : consumed, target, and remaining nutrients
+  deactivate Summary
+  DailyLog --> Svc : DailyNutritionSummary
+  deactivate DailyLog
+  Svc -> Mapper : toResponseDTO(dailyLog, summary)
   activate Mapper
-  Mapper -> ResponseDTO : map meals, target snapshot, and progress
+  Mapper -> ResponseDTO : map meals and nutrition summary
   activate ResponseDTO
   ResponseDTO --> Mapper : response DTO
   deactivate ResponseDTO
@@ -50,10 +60,13 @@ else No DailyLog exists yet
     Read current goals for the empty view.
     Do not create or persist an empty DailyLog.
   end note
-  Svc -> Svc : read goal values for the empty view
-  Svc -> Mapper : toEmptyResponseDTO(currentDate, profile goals)
+  Svc -> Summary : empty(currentDate, profile goals)
+  activate Summary
+  Summary --> Svc : zero consumed + current targets and remaining values
+  deactivate Summary
+  Svc -> Mapper : toEmptyResponseDTO(currentDate, summary)
   activate Mapper
-  Mapper -> ResponseDTO : map empty meals, targets, zero intake
+  Mapper -> ResponseDTO : map empty meals and nutrition summary
   activate ResponseDTO
   ResponseDTO --> Mapper : response DTO
   deactivate ResponseDTO

@@ -1,25 +1,26 @@
 @startuml US004-SD-2
-autonumber 22
+autonumber 27
 
 actor "User" as Actor
 participant "Flutter App" as UI
 participant ":JWT Authentication Filter" as Auth
 participant ":DailyLogController" as Ctrl
-participant ":DailyLogMapper" as Mapper
-participant ":AddMealItemRequestDTO" as RequestDTO
 participant ":DailyLogApplicationService" as Svc
 participant ":FoodCatalogQueryService (US003)" as FoodQuery
-participant ":FoodCatalogDetailsDTO (temporary)" as FoodDetailsDTO
+participant ":DailyLogMapper" as Mapper
+participant ":AddMealItemRequestDTO" as RequestDTO
+participant ":FoodCatalogDetailsDTO" as FoodDetailsDTO
 participant ":DailyLogRepository" as LogRepo
 participant ":UserNutritionalProfileRepository" as ProfileRepo
 participant ":DailyLogFactory" as LogFactory
 participant ":DailyLog" as DailyLog
 participant ":MealItemFactory" as ItemFactory
 participant ":NutrientScalingService" as Scaling
+participant ":FoodSnapshot" as FoodSnapshot
+participant ":PortionQuantity" as Portion
 participant ":MealItem" as MealItem
-participant ":FoodSnapshot (Value Object)" as FoodSnapshot
-participant ":PortionQuantity (Value Object)" as Portion
-participant ":MealType (Value Object)" as MealType
+participant ":MealType" as MealType
+participant ":DailyNutritionSummary" as Summary
 participant ":DailyLogResponseDTO" as ResponseDTO
 
 UI --> Actor : displays food and catalog serving
@@ -77,15 +78,15 @@ end
 
 Svc -> ItemFactory : createMealItem(foodDetailsDTO, servingQuantity)
 activate ItemFactory
-ItemFactory -> FoodSnapshot : create copied food details
+ItemFactory --> FoodSnapshot** : create()
 activate FoodSnapshot
 FoodSnapshot --> ItemFactory : immutable snapshot VO
 deactivate FoodSnapshot
-ItemFactory -> Portion : create positive catalog-serving quantity
+ItemFactory --> Portion** : create()
 activate Portion
 Portion --> ItemFactory : validated PortionQuantity
 deactivate Portion
-ItemFactory -> MealItem : create(FoodSnapshot, PortionQuantity)
+ItemFactory --> MealItem** : create(FoodSnapshot, PortionQuantity)
 activate MealItem
 MealItem --> ItemFactory : MealItem entity
 deactivate MealItem
@@ -94,7 +95,7 @@ deactivate ItemFactory
 
 Svc -> DailyLog : addMealItem(mealType, mealItem)
 activate DailyLog
-DailyLog -> MealType : validate/create supported meal type
+DailyLog --> MealType** : create()
 activate MealType
 MealType --> DailyLog : validated MealType
 deactivate MealType
@@ -103,8 +104,12 @@ activate Scaling
 Scaling --> DailyLog : validated calories and macros for this item
 deactivate Scaling
 DailyLog -> DailyLog : enforce meal type rules and add to meal
-DailyLog -> DailyLog : calculate meal and daily totals / remaining targets
-DailyLog --> Svc : updated DailyLog and progress
+DailyLog -> DailyLog : calculate meal totals
+DailyLog -> Summary : calculate from meal totals and goal snapshot
+activate Summary
+Summary --> DailyLog : consumed, target, and remaining nutrients
+deactivate Summary
+DailyLog --> Svc : updated DailyLog + DailyNutritionSummary
 deactivate DailyLog
 
 Svc -> LogRepo : save(dailyLog)
@@ -112,9 +117,9 @@ activate LogRepo
 LogRepo --> Svc : saved DailyLog
 deactivate LogRepo
 
-Svc -> Mapper : toResponseDTO(savedDailyLog)
+Svc -> Mapper : toResponseDTO(savedDailyLog, summary)
 activate Mapper
-Mapper -> ResponseDTO : map meals, totals, targets, and remaining values
+Mapper -> ResponseDTO : map meals and nutrition summary
 activate ResponseDTO
 ResponseDTO --> Mapper : response DTO
 deactivate ResponseDTO
@@ -128,16 +133,6 @@ deactivate Ctrl
 UI --> Actor : displays added food and updated progress
 deactivate UI
 deactivate Actor
-
-note over LogFactory,DailyLog
-  DDD boundary: DailyLog owns Meal and MealItem entities.
-  Each MealItem owns FoodSnapshot and PortionQuantity value objects. The
-  log does not store FoodItem, FoodId, or the temporary catalog DTO. An
-  optional barcode is copied into FoodSnapshot as descriptive metadata.
-  DailyLog stores the profile ID and immutable goal snapshot, not the
-  UserNutritionalProfile aggregate object. US004 only adds items; edits
-  and removals are handled by US009.
-end note
 
 == Validation and failure behavior ==
 note over Auth,LogRepo
