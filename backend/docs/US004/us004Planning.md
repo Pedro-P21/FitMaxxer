@@ -74,7 +74,7 @@ As a User, I want to log foods I eat today and see my calorie and macronutrient 
 ### 2.1. Relevant Domain Model Excerpt
 The daily log aggregate owns meals and meal items and references the user and nutritional profile. Each meal item owns a `FoodSnapshot` and portion value; it has no association to the Food Catalog aggregate.
 
-[Meal and Daily Log aggregate source](../global-artifacts/domainModel/domainModelExcerpts/puml/meal-and-daily-log-aggregate.puml)
+![meal_and_daily_log_aggregate.svg](../global-artifacts/domainModel/domainModelExcerpts/meal_and_daily_log_aggregate.svg)
 
 ![food-catalog-aggregate.svg](../global-artifacts/domainModel/domainModelExcerpts/food-catalog-aggregate.svg)
 

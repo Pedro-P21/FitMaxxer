@@ -91,7 +91,8 @@ Meal "1" *-- "0..*" MealItem
 
 MealItem "1" *-- "1" FoodSnapshot
 MealItem "1" *-- "1" PortionQuantity
-MealItem "1" --> "0..1" CustomRecipe : "references"
+MealItem "1" --> "0..1" CustomRecipe : "can be"
+FoodSnapshot "1" --> "1" FoodItem : "copies"
 
 ProgressTracker "1" --> "1" User : "tracks"
 ProgressTracker "1" *-- "0..*" WeightRecord
@@ -108,4 +109,8 @@ note top of UserNutritionalProfile
 - Relates directly to the User Entity Root.
 end note
 
+
+User -[hidden]-> UserNutritionalProfile
+UserNutritionalProfile -[hidden]-> ProgressTracker
+CustomRecipe -[hidden]-> DailyLog
 @enduml

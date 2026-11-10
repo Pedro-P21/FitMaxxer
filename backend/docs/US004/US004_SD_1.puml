@@ -1,0 +1,72 @@
+@startuml US004-SD
+autonumber
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+actor "User" as Actor
+participant "Flutter App" as UI
+participant ":JWT Authentication Filter" as Auth
+participant ":DailyLogController" as Ctrl
+participant ":DailyLogApplicationService" as Svc
+participant ":DailyLogRepository" as LogRepo
+participant ":UserNutritionalProfileRepository" as ProfileRepo
+participant ":DailyLogMapper" as Mapper
+participant ":DailyLogResponseDTO" as ResponseDTO
+
+
+activate Actor
+Actor -> UI : opens today's food log
+activate UI
+UI -> Auth : GET /api/daily-log/today\nAuthorization: Bearer <access-token>
+activate Auth
+Auth -> Auth : validate token and build principal from sub
+Auth -> Ctrl : forward request with authenticated userId
+activate Ctrl
+deactivate Auth
+
+Ctrl -> Svc : getToday(userId, currentDate)
+activate Svc
+Svc -> LogRepo : findByUserIdAndDate(userId, currentDate)
+activate LogRepo
+LogRepo --> Svc : Optional<DailyLog>
+deactivate LogRepo
+
+alt DailyLog exists
+  Svc -> Mapper : toResponseDTO(dailyLog)
+  activate Mapper
+  Mapper -> ResponseDTO : map meals, target snapshot, and progress
+  activate ResponseDTO
+  ResponseDTO --> Mapper : response DTO
+  deactivate ResponseDTO
+  Mapper --> Svc : response DTO
+  deactivate Mapper
+else No DailyLog exists yet
+  Svc -> ProfileRepo : findByUserId(userId)
+  activate ProfileRepo
+  ProfileRepo --> Svc : UserNutritionalProfile
+  deactivate ProfileRepo
+  note right of Svc
+    Read current goals for the empty view.
+    Do not create or persist an empty DailyLog.
+  end note
+  Svc -> Svc : read goal values for the empty view
+  Svc -> Mapper : toEmptyResponseDTO(currentDate, profile goals)
+  activate Mapper
+  Mapper -> ResponseDTO : map empty meals, targets, zero intake
+  activate ResponseDTO
+  ResponseDTO --> Mapper : response DTO
+  deactivate ResponseDTO
+  Mapper --> Svc : response DTO
+  deactivate Mapper
+end
+
+Svc --> Ctrl : DailyLogResponseDTO
+deactivate Svc
+Ctrl --> UI : 200 OK + response DTO
+deactivate Ctrl
+UI --> Actor : displays today's log and progress
+
+deactivate UI
+deactivate Actor
+@enduml

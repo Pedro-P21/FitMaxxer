@@ -1,84 +1,27 @@
-@startuml US004-SD
-autonumber
-skinparam monochrome true
-skinparam packageStyle rectangle
-skinparam shadowing false
+@startuml US004-SD-2
+autonumber 22
 
 actor "User" as Actor
 participant "Flutter App" as UI
 participant ":JWT Authentication Filter" as Auth
 participant ":DailyLogController" as Ctrl
+participant ":DailyLogMapper" as Mapper
+participant ":AddMealItemRequestDTO" as RequestDTO
 participant ":DailyLogApplicationService" as Svc
-participant ":DailyLogRepository" as LogRepo
-participant ":UserNutritionalProfileRepository" as ProfileRepo
 participant ":FoodCatalogQueryService (US003)" as FoodQuery
 participant ":FoodCatalogDetailsDTO (temporary)" as FoodDetailsDTO
+participant ":DailyLogRepository" as LogRepo
+participant ":UserNutritionalProfileRepository" as ProfileRepo
 participant ":DailyLogFactory" as LogFactory
+participant ":DailyLog" as DailyLog
 participant ":MealItemFactory" as ItemFactory
 participant ":NutrientScalingService" as Scaling
-participant ":DailyLog" as DailyLog
 participant ":MealItem" as MealItem
 participant ":FoodSnapshot (Value Object)" as FoodSnapshot
 participant ":PortionQuantity (Value Object)" as Portion
 participant ":MealType (Value Object)" as MealType
-participant ":DailyLogMapper" as Mapper
-participant ":AddMealItemRequestDTO" as RequestDTO
 participant ":DailyLogResponseDTO" as ResponseDTO
 
-
-activate Actor
-Actor -> UI : opens today's food log
-activate UI
-UI -> Auth : GET /api/daily-log/today\nAuthorization: Bearer <access-token>
-activate Auth
-Auth -> Auth : validate token and build principal from sub
-Auth -> Ctrl : forward request with authenticated userId
-activate Ctrl
-deactivate Auth
-
-Ctrl -> Svc : getToday(userId, currentDate)
-activate Svc
-Svc -> LogRepo : findByUserIdAndDate(userId, currentDate)
-activate LogRepo
-LogRepo --> Svc : Optional<DailyLog>
-deactivate LogRepo
-
-alt DailyLog exists
-  Svc -> Mapper : toResponseDTO(dailyLog)
-  activate Mapper
-  Mapper -> ResponseDTO : map meals, target snapshot, and progress
-  activate ResponseDTO
-  ResponseDTO --> Mapper : response DTO
-  deactivate ResponseDTO
-  Mapper --> Svc : response DTO
-  deactivate Mapper
-else No DailyLog exists yet
-  Svc -> ProfileRepo : findByUserId(userId)
-  activate ProfileRepo
-  ProfileRepo --> Svc : UserNutritionalProfile
-  deactivate ProfileRepo
-  note right of Svc
-    Read current goals for the empty view.
-    Do not create or persist an empty DailyLog.
-  end note
-  Svc -> Svc : read goal values for the empty view
-  Svc -> Mapper : toEmptyResponseDTO(currentDate, profile goals)
-  activate Mapper
-  Mapper -> ResponseDTO : map empty meals, targets, zero intake
-  activate ResponseDTO
-  ResponseDTO --> Mapper : response DTO
-  deactivate ResponseDTO
-  Mapper --> Svc : response DTO
-  deactivate Mapper
-end
-
-Svc --> Ctrl : DailyLogResponseDTO
-deactivate Svc
-Ctrl --> UI : 200 OK + response DTO
-deactivate Ctrl
-UI --> Actor : displays today's log and progress
-
-Actor -> UI : searches/selects food using US003
 UI --> Actor : displays food and catalog serving
 Actor -> UI : selects meal type and serving quantity
 UI -> Auth : POST /api/daily-log/today/items\n(body: foodId, mealType, servingQuantity)\nAuthorization: Bearer <access-token>
@@ -88,10 +31,14 @@ Auth -> Ctrl : forward request with authenticated userId
 activate Ctrl
 deactivate Auth
 
-Ctrl -> RequestDTO : bind JSON body and validate required fields
+Ctrl -> Mapper : bind JSON body and validate required fields
+activate Mapper
+Mapper -> RequestDTO: toDTO()
 activate RequestDTO
-RequestDTO --> Ctrl : AddMealItemRequestDTO
+RequestDTO --> Mapper
 deactivate RequestDTO
+Mapper --> Ctrl : AddMealItemRequestDTO
+deactivate Mapper
 Ctrl -> Svc : addMealItem(userId, requestDTO)
 activate Svc
 Svc -> FoodQuery : getFoodDetails(catalogLookupKey)
@@ -118,9 +65,9 @@ else First item today
   ProfileRepo --> Svc : UserNutritionalProfile
   deactivate ProfileRepo
   Svc -> Svc : extract profileId and copy calorie/macro targets
-  Svc -> LogFactory : create(userId, currentDate, profileId, goalSnapshot)
+  Svc -> LogFactory : createDailyLog(userId, currentDate, profileId, goalSnapshot)
   activate LogFactory
-  LogFactory -> DailyLog : construct DailyLog with identity and target snapshot
+  LogFactory --> DailyLog** : create()
   activate DailyLog
   DailyLog --> LogFactory : new DailyLog
   deactivate DailyLog
@@ -128,7 +75,7 @@ else First item today
   deactivate LogFactory
 end
 
-Svc -> ItemFactory : create(foodDetailsDTO, servingQuantity)
+Svc -> ItemFactory : createMealItem(foodDetailsDTO, servingQuantity)
 activate ItemFactory
 ItemFactory -> FoodSnapshot : create copied food details
 activate FoodSnapshot
