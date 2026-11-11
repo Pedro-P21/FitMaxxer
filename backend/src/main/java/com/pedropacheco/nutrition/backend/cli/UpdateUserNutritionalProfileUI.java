@@ -161,10 +161,10 @@ public class UpdateUserNutritionalProfileUI {
                 || changes.gender != null || changes.bodyFatPercentage != null) {
             System.out.println(" - PhysicalData:");
             if (changes.age != null) System.out.println("   age: " + changes.age);
-            if (changes.weightKg != null) System.out.println("   weight: " + changes.weightKg + " " + weightUnit(changes.unitSystem));
-            if (changes.heightCm != null) System.out.println("   height: " + changes.heightCm + " " + heightUnit(changes.unitSystem));
+            if (changes.weightKg != null) System.out.println("   weight: " + CliNumberFormatter.whole(changes.weightKg) + " " + weightUnit(changes.unitSystem));
+            if (changes.heightCm != null) System.out.println("   height: " + CliNumberFormatter.whole(changes.heightCm) + " " + heightUnit(changes.unitSystem));
             if (changes.gender != null) System.out.println("   gender: " + changes.gender);
-            if (changes.bodyFatPercentage != null) System.out.println("   body fat: " + changes.bodyFatPercentage + "%");
+            if (changes.bodyFatPercentage != null) System.out.println("   body fat: " + CliNumberFormatter.whole(changes.bodyFatPercentage) + "%");
         }
         if (changes.activityLevel != null) System.out.println(" - ActivityLevel: " + changes.activityLevel);
         if (changes.calorieTarget != null) System.out.println(" - Calorie target: " + changes.calorieTarget + " kcal");

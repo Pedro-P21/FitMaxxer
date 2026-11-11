@@ -89,8 +89,8 @@ public class DailyLogUI {
             FoodItemDTO food = items.get(index);
             System.out.printf("%d. %s%s | %s %s | %s kcal (%s)%n", index + 1, food.name(),
                     food.brand() == null || food.brand().isBlank() ? "" : " — " + food.brand(),
-                    food.servingQuantity().stripTrailingZeros().toPlainString(), food.servingUnit(),
-                    food.caloriesKcal().stripTrailingZeros().toPlainString(), food.nutrientBasis());
+                    format(food.servingQuantity()), food.servingUnit(),
+                    format(food.caloriesKcal()), food.nutrientBasis());
         }
 
         while (true) {
@@ -193,7 +193,7 @@ public class DailyLogUI {
 
         if (unit == PortionQuantity.Unit.SERVING) {
             BigDecimal halfServing = food.servingQuantity().divide(BigDecimal.valueOf(2), 4, java.math.RoundingMode.HALF_UP);
-            System.out.printf("Number of catalog servings (1 = %s %s, 0.5 = %s %s; 0 to cancel): ",
+            System.out.printf("Number of catalog servings (1 = %s %s, half serving = %s %s; 0 to cancel): ",
                     format(food.servingQuantity()), food.servingUnit(), format(halfServing), food.servingUnit());
         } else {
             System.out.printf("Nutrients are %s; the catalog serving is %s %s. Enter an amount in %s (0 to cancel): ",
@@ -215,12 +215,12 @@ public class DailyLogUI {
     private void printDailyLog(DailyLogResponseDTO response) {
         System.out.println("\n=== Today's food log: " + response.date() + " ===");
         response.meals().forEach(meal -> {
-            System.out.println("\n" + meal.type() + " (" + meal.consumed().caloriesKcal().stripTrailingZeros().toPlainString() + " kcal)");
+            System.out.println("\n" + meal.type() + " (" + format(meal.consumed().caloriesKcal()) + " kcal)");
             if (meal.items().isEmpty()) {
                 System.out.println("  No foods logged.");
             } else {
                 meal.items().forEach(item -> System.out.printf("  - %s: %s %s%n", item.foodName(),
-                        item.quantity().stripTrailingZeros().toPlainString(),
+                        format(item.quantity()),
                         item.quantityUnit().toLowerCase(java.util.Locale.ROOT)));
             }
         });
@@ -237,7 +237,7 @@ public class DailyLogUI {
         System.out.printf("  %s: %s / %s / %s %s%n", name, format(consumed), format(target), format(remaining), unit);
     }
 
-    private String format(BigDecimal value) { return value.stripTrailingZeros().toPlainString(); }
+    private String format(BigDecimal value) { return CliNumberFormatter.whole(value); }
 
     private List<PortionQuantity.Unit> quantityOptionsFor(FoodItemDTO food) {
         PortionQuantity.Unit measuredUnit = switch (food.nutrientBasis()) {

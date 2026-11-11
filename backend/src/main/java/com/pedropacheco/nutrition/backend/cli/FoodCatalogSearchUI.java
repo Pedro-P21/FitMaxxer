@@ -81,13 +81,13 @@ public class FoodCatalogSearchUI {
         System.out.println("Name: " + item.name());
         System.out.println("Brand: " + valueOrUnavailable(item.brand()));
         System.out.println("Barcode: " + valueOrUnavailable(item.barcode()));
-        System.out.println("Serving: " + item.servingQuantity().stripTrailingZeros().toPlainString()
+        System.out.println("Serving: " + CliNumberFormatter.whole(item.servingQuantity())
                 + " " + item.servingUnit());
         System.out.println("Nutrients (" + item.nutrientBasis() + "):");
-        System.out.println(" - Calories: " + item.caloriesKcal() + " kcal");
-        System.out.println(" - Protein: " + item.proteinGrams() + " g");
-        System.out.println(" - Carbohydrates: " + item.carbohydrateGrams() + " g");
-        System.out.println(" - Fat: " + item.fatGrams() + " g");
+        System.out.println(" - Calories: " + CliNumberFormatter.whole(item.caloriesKcal()) + " kcal");
+        System.out.println(" - Protein: " + CliNumberFormatter.whole(item.proteinGrams()) + " g");
+        System.out.println(" - Carbohydrates: " + CliNumberFormatter.whole(item.carbohydrateGrams()) + " g");
+        System.out.println(" - Fat: " + CliNumberFormatter.whole(item.fatGrams()) + " g");
     }
 
     private String valueOrUnavailable(String value) {
