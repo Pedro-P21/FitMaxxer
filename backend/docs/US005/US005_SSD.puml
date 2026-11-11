@@ -1,0 +1,40 @@
+@startuml US005-SSD
+autonumber
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+actor "User" as Actor
+participant "UI" as UI
+participant ":System" as System
+
+activate Actor
+Actor -> UI : selects month and year for Daily History
+activate UI
+UI -> System : GET /api/daily-log/history?month={month}&year={year}\nAuthorization: Bearer <access-token>
+activate System
+
+System -> System : authenticates user and identifies owner
+System -> System : validates month/year against calendar and supported history window
+System -> System : derives current date and requested month range
+System -> System : retrieves owner's saved logs in requested month\n(excluding today if month is current)
+System -> System : calculates each log's nutrition summary from its stored snapshots
+
+alt Logs exist for selected month
+    System --> UI : monthly history (dates, meals, foods, quantities, and nutrition summaries)
+    UI --> Actor : displays logs newest first, grouped by date and meal
+else No logs for selected month
+    System --> UI : empty history
+    UI --> Actor : displays "No logs are available for this month"
+end
+
+deactivate System
+deactivate UI
+deactivate Actor
+
+note over UI,System
+  User identity is derived from the authenticated token.
+  currentDate is determined by the application, not supplied by the user.
+end note
+
+@enduml

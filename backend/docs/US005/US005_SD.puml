@@ -1,0 +1,83 @@
+@startuml US005-SD
+autonumber
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+actor "User" as Actor
+participant "Frontend" as UI
+participant ":JWT Authentication Filter" as Auth
+participant ":LogHistoryController" as Ctrl
+participant ":LogHistoryService" as Service
+participant ":DailyLogRepository" as LogRepo
+database "Daily Log Database" as DB
+participant ":PastHistoryMapper" as Mapper
+participant ":DailyLog" as DailyLog
+participant ":NutrientScalingService" as Scaling
+participant ":LogHistoryResponseDTO" as ResponseDTO
+
+activate Actor
+Actor -> UI : chooses a month and year to review
+activate UI
+UI -> Auth : GET /api/daily-log/history?month={month}&year={year}\nAuthorization: Bearer <access-token>
+activate Auth
+Auth -> Auth : validate token and extract authenticated userId
+Auth -> Ctrl : forward request with authenticated userId and query parameters
+activate Ctrl
+deactivate Auth
+
+Ctrl -> Service : getPastHistory(userId, month, year)
+activate Service
+Service -> Service : derive currentDate from application clock
+Service -> Service : validate month/year and derive requested date range
+Service -> LogRepo : findByUserIdAndDateBetweenOrderByDateDesc(userId, startDate, endDate)
+activate LogRepo
+LogRepo -> DB : select user's logs within requested month\norder by log_date descending
+activate DB
+DB --> LogRepo : list of DailyLog aggregates
+deactivate DB
+LogRepo --> Service : pastDailyLogs
+deactivate LogRepo
+
+loop each DailyLog
+    Service -> DailyLog : calculateNutritionSummary(Scaling)
+    activate DailyLog
+    DailyLog -> Scaling : calculate contributions from stored FoodSnapshots and PortionQuantities
+    activate Scaling
+    Scaling --> DailyLog : nutrient contributions
+    deactivate Scaling
+    DailyLog --> Service : consumed, target, and remaining values
+    deactivate DailyLog
+end
+
+Service -> Mapper : toResponseDTO(pastDailyLogs, summaries)
+activate Mapper
+Mapper -> Mapper : map dates, meals, food snapshots, quantities, and summaries
+Mapper -> ResponseDTO : create monthly history response
+activate ResponseDTO
+ResponseDTO --> Mapper : LogHistoryResponseDTO
+deactivate ResponseDTO
+Mapper --> Service : LogHistoryResponseDTO
+deactivate Mapper
+
+Service --> Ctrl : LogHistoryResponseDTO
+deactivate Service
+Ctrl --> UI : 200 OK + monthly history response
+deactivate Ctrl
+
+alt Logs exist for selected month
+    UI --> Actor : displays logs newest first, grouped by date and meal
+else No logs for selected month
+    UI --> Actor : displays "No logs are available for this month"
+end
+
+deactivate UI
+deactivate Actor
+
+note over Auth,LogRepo
+  The authenticated userId comes from the validated token.
+  The application derives the current date and excludes today when the
+  requested month is the current month. The query is limited to one month.
+end note
+
+@enduml

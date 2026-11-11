@@ -46,3 +46,6 @@ As a User, I want to be able to benefit from a pre-made nutritonal plan, made by
 
 ## US014. Nutritonal plan creation
 As a User, I want to be able to create my own nutritonal plan, based on my personal data, or even edit the default one, so that I can make better nutritional decisions.
+
+## US015. Addaptive Diet 
+As a User, I want to set a dietary goal, and i want the application to slowly change my daily targets to "ease into the diet", gradually changing the targets along the time, instead of setting a fixed target.
