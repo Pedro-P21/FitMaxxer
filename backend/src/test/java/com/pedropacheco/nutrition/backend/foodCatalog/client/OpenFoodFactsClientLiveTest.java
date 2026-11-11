@@ -1,7 +1,7 @@
 package com.pedropacheco.nutrition.backend.foodCatalog.client;
 
 import com.pedropacheco.nutrition.backend.foodCatalog.adapter.OpenFoodFactsAdapter;
-import com.pedropacheco.nutrition.backend.foodCatalog.dto.FoodItemMapper;
+import com.pedropacheco.nutrition.backend.foodCatalog.dto.mapper.OpenFoodFactsMapper;
 import com.pedropacheco.nutrition.backend.foodCatalog.factory.FoodItemFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -25,7 +25,7 @@ class OpenFoodFactsClientLiveTest {
         var client = new OpenFoodFactsClient(restClient, true, username, password);
 
         var items = new OpenFoodFactsAdapter(client,
-                new FoodItemMapper(new FoodItemFactory())).search("5601312507994");
+                new OpenFoodFactsMapper(new FoodItemFactory())).search("5601312507994");
 
         assertEquals(1, items.size());
         assertNotNull(items.getFirst().getBarcode());

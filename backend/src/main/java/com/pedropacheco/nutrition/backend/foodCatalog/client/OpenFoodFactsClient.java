@@ -87,16 +87,17 @@ public class OpenFoodFactsClient {
             return false;
         }
         var nutrients = product.getNutriments();
-        if ("serving".equalsIgnoreCase(product.getNutritionDataPer())) {
-            return nutrients.getEnergyKcalPerServing() != null
-                    && nutrients.getProteinsPerServing() != null
-                    && nutrients.getCarbohydratesPerServing() != null
-                    && nutrients.getFatPerServing() != null;
+        if (hasCompleteValues(nutrients.getEnergyKcalPerServing(), nutrients.getProteinsPerServing(),
+                nutrients.getCarbohydratesPerServing(), nutrients.getFatPerServing())) {
+            return true;
         }
-        return nutrients.getEnergyKcalPer100g() != null
-                && nutrients.getProteinsPer100g() != null
-                && nutrients.getCarbohydratesPer100g() != null
-                && nutrients.getFatPer100g() != null;
+        if ("serving".equalsIgnoreCase(product.getNutritionDataPer())) return false;
+        return hasCompleteValues(nutrients.getEnergyKcalPer100g(), nutrients.getProteinsPer100g(),
+                nutrients.getCarbohydratesPer100g(), nutrients.getFatPer100g());
+    }
+
+    private boolean hasCompleteValues(String calories, String protein, String carbohydrates, String fat) {
+        return calories != null && protein != null && carbohydrates != null && fat != null;
     }
 
     private boolean isSuccessfulStatus(Object status) {

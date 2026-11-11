@@ -16,11 +16,14 @@ public class FitMaxxerMainMenu {
 
     private final UpdateUserNutritionalProfileUI updateUserNutritionalProfileUI;
     private final FoodCatalogSearchUI foodCatalogSearchUI;
+    private final DailyLogUI dailyLogUI;
 
     public FitMaxxerMainMenu(UpdateUserNutritionalProfileUI updateUserNutritionalProfileUI,
-                             FoodCatalogSearchUI foodCatalogSearchUI) {
+                             FoodCatalogSearchUI foodCatalogSearchUI,
+                             DailyLogUI dailyLogUI) {
         this.updateUserNutritionalProfileUI = updateUserNutritionalProfileUI;
         this.foodCatalogSearchUI = foodCatalogSearchUI;
+        this.dailyLogUI = dailyLogUI;
     }
 
     public void show(String userId, Scanner scanner) {
@@ -48,7 +51,7 @@ public class FitMaxxerMainMenu {
                     System.out.println("[INFO] Profile feature is under development.");
                     break;
                 case "2":
-                    System.out.println("[INFO] Meal logging feature is under development.");
+                    dailyLogUI.show(userId, scanner);
                     break;
                 case "3":
                     System.out.println("[INFO] Nutrition plan feature is under development.");

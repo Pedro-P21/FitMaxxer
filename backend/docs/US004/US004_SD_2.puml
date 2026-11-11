@@ -24,8 +24,8 @@ participant ":DailyNutritionSummary" as Summary
 participant ":DailyLogResponseDTO" as ResponseDTO
 
 UI --> Actor : displays food and catalog serving
-Actor -> UI : selects meal type and serving quantity
-UI -> Auth : POST /api/daily-log/today/items\n(body: foodId, mealType, servingQuantity)\nAuthorization: Bearer <access-token>
+Actor -> UI : selects meal type and quantity unit
+UI -> Auth : POST /api/daily-log/today/items\n(body: foodId, mealType, quantity, quantityUnit)\nAuthorization: Bearer <access-token>
 activate Auth
 Auth -> Auth : validate token and build principal from sub
 Auth -> Ctrl : forward request with authenticated userId
@@ -76,13 +76,13 @@ else First item today
   deactivate LogFactory
 end
 
-Svc -> ItemFactory : createMealItem(foodDetailsDTO, servingQuantity)
+Svc -> ItemFactory : createMealItem(foodDetailsDTO, quantity, quantityUnit)
 activate ItemFactory
 ItemFactory --> FoodSnapshot** : create()
 activate FoodSnapshot
 FoodSnapshot --> ItemFactory : immutable snapshot VO
 deactivate FoodSnapshot
-ItemFactory --> Portion** : create()
+ItemFactory --> Portion** : create(quantity, quantityUnit)
 activate Portion
 Portion --> ItemFactory : validated PortionQuantity
 deactivate Portion

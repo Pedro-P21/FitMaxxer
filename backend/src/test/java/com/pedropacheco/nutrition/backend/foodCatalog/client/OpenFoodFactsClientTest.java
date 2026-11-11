@@ -1,5 +1,6 @@
 package com.pedropacheco.nutrition.backend.foodCatalog.client;
 
+import com.pedropacheco.nutrition.backend.foodCatalog.dto.OpenFoodFactsProductDTO;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -83,6 +84,27 @@ class OpenFoodFactsClientTest {
 
         assertNotNull(product);
         assertEquals("35", product.getNutriments().getEnergyKcalPer100g());
+        server.verify();
+    }
+
+    @Test
+    void acceptsNormalizedPerServingNutrientsEvenWhenLabelBasisIsPerHundred() {
+        RestClient.Builder builder = RestClient.builder().baseUrl(BASE_URL)
+                .defaultHeader(HttpHeaders.USER_AGENT, USER_AGENT);
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        OpenFoodFactsClient client = new OpenFoodFactsClient(builder.build(), false, "", "");
+        server.expect(requestTo(containsString("/api/v3.6/product/12345678.json")))
+                .andRespond(withSuccess("{\"status\":\"success\",\"product\":{"
+                        + "\"code\":\"12345678\",\"product_name\":\"Milk\",\"serving_size\":\"250 ml\","
+                        + "\"nutrition_data_per\":\"100g\",\"nutriments\":{"
+                        + "\"energy-kcal_serving\":87.5,\"proteins_serving\":8.75,"
+                        + "\"carbohydrates_serving\":12.5,\"fat_serving\":0.25}}}",
+                        MediaType.APPLICATION_JSON));
+
+        OpenFoodFactsProductDTO product = client.findByBarcode("12345678");
+
+        assertNotNull(product);
+        assertEquals("87.5", product.getNutriments().getEnergyKcalPerServing());
         server.verify();
     }
 }

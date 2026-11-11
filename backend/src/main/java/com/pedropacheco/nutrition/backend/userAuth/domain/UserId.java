@@ -25,7 +25,7 @@ public class UserId {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         UserId userId = (UserId) o;
-        return userId.equals(userId.userID);
+        return Objects.equals(userID, userId.userID);
     }
 
     @Override

@@ -12,6 +12,12 @@ class UserIdTest {
     }
 
     @Test
+    void userIdsWithTheSameValueAreEqual() {
+        assertEquals(new UserId("pedro123"), new UserId(" pedro123 "));
+        assertEquals(new UserId("pedro123").hashCode(), new UserId("pedro123").hashCode());
+    }
+
+    @Test
     void shouldRejectNullOrBlankUserId() {
         assertThrows(IllegalArgumentException.class, () -> new UserId(null));
         assertThrows(IllegalArgumentException.class, () -> new UserId("   "));

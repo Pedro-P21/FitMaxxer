@@ -1,5 +1,7 @@
 # FitMaxxer Product Backlog - User Stories
 
+## MVP – MINIMUM VIABLE PRODUCT
+
 ## US001. Physical Profile Management
 As a User, I want to log my personal data (age, weight, height, gender, activity level), so that the application can use it as a baseline for my nutritional goals.
 
@@ -23,15 +25,24 @@ As a User, I want to be able to see a progress trend showcasing changes over tim
 
 ## US008. Authentication and Account Management
 As a User, I want to create an account and log in securely, so that my personal data, custom recipes, and history are safely synchronized and saved.
-
+ 
 ## US009. Editing and Deleting Past Logs
 As a User, I want to be able to edit or delete items I previously logged in a meal, so that I can correct mistakes or change my mind about what I ate.
 
 ## US010. Meal Duplication
 As a User, I want to be able to copy a meal from a previous day into my current day, so that I can save time logging repetitive meals (like breakfast or snacks).
 
+----
+## PHASE 2
+
 ## US011. Barcode Scanning
 As a User, I want to be able to scan a barcode to log food items quickly.
 
-## US012. Flexible Portion Quantities
-As a User, I want to log food in quantities such as grams, milliliters, item counts, or custom servings, so that my calorie and macronutrient totals reflect the amount I actually consumed.
+## US012. Flexible quantity logging 
+As a User, I want to be able to log food in custom quantities not only in portion scaling factors.
+
+## US013. Pre-made nutritonal plans
+As a User, I want to be able to benefit from a pre-made nutritonal plan, made by the application based on my personal data, so that I can make better nutritional decisions.
+
+## US014. Nutritonal plan creation
+As a User, I want to be able to create my own nutritonal plan, based on my personal data, or even edit the default one, so that I can make better nutritional decisions.
