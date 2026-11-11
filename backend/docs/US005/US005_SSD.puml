@@ -32,9 +32,4 @@ deactivate System
 deactivate UI
 deactivate Actor
 
-note over UI,System
-  User identity is derived from the authenticated token.
-  currentDate is determined by the application, not supplied by the user.
-end note
-
 @enduml

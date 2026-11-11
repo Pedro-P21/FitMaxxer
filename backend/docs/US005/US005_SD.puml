@@ -17,7 +17,7 @@ participant ":NutrientScalingService" as Scaling
 participant ":LogHistoryResponseDTO" as ResponseDTO
 
 activate Actor
-Actor -> UI : chooses a month and year to review
+Actor -> UI : selects a month and year to review
 activate UI
 UI -> Auth : GET /api/daily-log/history?month={month}&year={year}\nAuthorization: Bearer <access-token>
 activate Auth
@@ -30,7 +30,7 @@ Ctrl -> Service : getPastHistory(userId, month, year)
 activate Service
 Service -> Service : derive currentDate from application clock
 Service -> Service : validate month/year and derive requested date range
-Service -> LogRepo : findByUserIdAndDateBetweenOrderByDateDesc(userId, startDate, endDate)
+Service -> LogRepo : findByUserIdAndDateRange(userId, startDate, endDate)
 activate LogRepo
 LogRepo -> DB : select user's logs within requested month\norder by log_date descending
 activate DB
@@ -39,20 +39,19 @@ deactivate DB
 LogRepo --> Service : pastDailyLogs
 deactivate LogRepo
 
+Service -> Mapper : toResponseDTO(pastDailyLogs, year, month)
+activate Mapper
 loop each DailyLog
-    Service -> DailyLog : calculateNutritionSummary(Scaling)
+    Mapper -> DailyLog : calculateNutritionSummary(Scaling)
     activate DailyLog
-    DailyLog -> Scaling : calculate contributions from stored FoodSnapshots and PortionQuantities
+    DailyLog -> Scaling : calculate contributions from stored food and portion snapshots
     activate Scaling
     Scaling --> DailyLog : nutrient contributions
     deactivate Scaling
-    DailyLog --> Service : consumed, target, and remaining values
+    DailyLog --> Mapper : consumed, target, and remaining values
     deactivate DailyLog
+    Mapper -> Mapper : map date, meals, foods, quantities, and summary
 end
-
-Service -> Mapper : toResponseDTO(pastDailyLogs, summaries)
-activate Mapper
-Mapper -> Mapper : map dates, meals, food snapshots, quantities, and summaries
 Mapper -> ResponseDTO : create monthly history response
 activate ResponseDTO
 ResponseDTO --> Mapper : LogHistoryResponseDTO
@@ -73,11 +72,4 @@ end
 
 deactivate UI
 deactivate Actor
-
-note over Auth,LogRepo
-  The authenticated userId comes from the validated token.
-  The application derives the current date and excludes today when the
-  requested month is the current month. The query is limited to one month.
-end note
-
 @enduml
