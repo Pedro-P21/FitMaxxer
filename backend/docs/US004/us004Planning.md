@@ -65,7 +65,7 @@ As a User, I want to log foods I eat today and see my calorie and macronutrient 
 - Portion quantity is a positive amount paired with a unit. Catalog-serving multipliers are the default; explicit grams or milliliters are available when compatible with the food's nutrient basis. Item-count conversions and named portions (for example, “one bowl”) require a food-specific measured equivalent and are deferred to US012.
 - Nutrition calculation uses the serving and nutrient basis supplied by US003. US003 must expose compatible serving/nutrient data; US004 does not invent missing conversions or nutrient values.
 - The request uses a catalog lookup key only to resolve the selected food through US003. The persisted `MealItem` contains a `FoodSnapshot` and `PortionQuantity`; it does not retain `FoodId` or a reference to the `FoodItem` aggregate. An available barcode is copied into the snapshot as descriptive data.
-- On first item creation, the log stores the active calorie and macro targets. Daily progress is calculated as target minus logged intake; profile goals themselves are not decremented or mutated.
+- On first item creation, the log stores the active calorie and macro targets. If the user changes goals later that day, US002 refreshes the existing log's target snapshot in the same transaction as the profile edit. Prior days' snapshots remain unchanged. Daily progress is calculated as target minus logged intake; profile goals themselves are not decremented or mutated.
 - Negative remaining values communicate that intake exceeded a target.
 
 
@@ -106,7 +106,7 @@ The `MealItem` has no reference to the `FoodItem` aggregate. US003's catalog loo
 4. **Use measurable units in this story.** `PortionQuantity` records a positive serving count, gram amount, or milliliter amount. Other units and named portions require food-specific conversions and are deferred to US012.
 5. **Offer compatible quantity inputs.** In the CLI, ask whether to use catalog-serving multiples or a measured gram/milliliter amount when both can be calculated. If only one is compatible with the food's serving definition and nutrient basis, request that input directly. The API carries the chosen amount and unit in `AddMealItemRequestDTO`.
 6. **Scale nutrition using the provided basis.** Calculate the item's contribution from its amount and unit together with the serving/nutrient data from US003. Reject unavailable or incompatible data rather than displaying fabricated totals.
-7. **Snapshot today's targets.** When the first item creates the log, copy the active profile's calorie and macro targets into the log. Later profile changes do not silently change this day's progress.
+7. **Snapshot and refresh today's targets.** When the first item creates the log, copy the active profile's calorie and macro targets into the log. If those goals are edited during the same date, US002 refreshes today's snapshot; earlier daily logs retain their original targets.
 8. **Derive progress.** Calculate consumed totals from logged items and remaining values as target minus consumed.
 9. **Meal types are fixed.** Support `Breakfast`, `Lunch`, `Dinner`, and repeatable `Snacks`; user-defined types are out of scope.
 10. **US004 is add-only.** It does not edit or remove meals or meal items. Those operations are reserved for US009.
@@ -147,7 +147,7 @@ The `MealItem` has no reference to the `FoodItem` aggregate. US003's catalog loo
 1. **Open today's log:** The authenticated user opens the daily view. The application loads today's log by the authenticated user and date; if none exists, it returns an empty view without persisting a log.
 2. **Find a food:** The user searches the catalog using US003 and selects a returned food item. The client submits its catalog lookup key, not trusted nutrient values.
 3. **Choose meal and amount:** The user selects `Breakfast`, `Lunch`, `Dinner`, or a `Snacks` entry and enters a catalog-serving multiplier or an explicit gram/milliliter amount compatible with the food's nutrient basis.
-4. **Load or create and add:** The application loads today's log. If this is the first item, it loads the active profile, snapshots today's targets, and creates the log. It resolves the selected catalog key through US003, creates a `FoodSnapshot` and `MealItem`, and adds it to the selected meal.
+4. **Load or create and add:** The application loads today's log. If this is the first item, it loads the active profile, snapshots today's targets, and creates the log. It resolves the selected catalog key through US003, creates a `FoodSnapshot` and `MealItem`, and adds it to the selected meal. A later goal edit refreshes the target snapshot for this date through US002.
 5. **Calculate progress:** The domain calculates item nutrients from the recorded amount, its unit, and the catalog nutrient basis. The response returns per-meal and daily totals plus targets and remaining values.
 
 ### 5.2. Key Methods and Classes

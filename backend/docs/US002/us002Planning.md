@@ -31,6 +31,7 @@ As a User, I want to be able to manually edit my macro and calorie goals, so tha
 - **AC5:** If the changes include both `PhysicalData` and/or `ActivityLevel` and nutritional goal fields, the application must calculate the new goal and create a new profile incorporating the confirmed changes.
 - **AC6:** The resulting changes must be persisted and used as the user's active profile and goals.
 - **AC7:** The user must receive confirmation after changes are saved.
+- **AC8:** If today's daily log already exists, a successful goal change must update that log's calorie and macronutrient target snapshot. Logs from previous dates remain unchanged.
 
 ##### 1.4. Found out Dependencies
 
@@ -58,6 +59,7 @@ As a User, I want to be able to manually edit my macro and calorie goals, so tha
 - Changes only to `CaloricTarget` and/or `MacroBreakdown` replace the corresponding goal value(s) without recalculating the profile.
 - Any explicit nutritional goal changes submitted together with physical data or activity level changes are incorporated into the newly calculated profile.
 - Changes are applied to the authenticated user's profile after confirmation.
+- After the profile update succeeds, today's existing daily log uses the updated calorie and macro targets; earlier daily logs retain the targets captured for their dates.
 
 
 ## 2. Analysis
@@ -77,6 +79,7 @@ The following diagram illustrates the user nutritional profile and nutritional g
 | **Application Service** | Coordinate selected edits, validation, profile recalculation when required, and persistence. | Applies all confirmed changes as one use case while keeping request handling separate from domain rules and storage. |
 | **Conditional Profile Recalculation** | Recalculate and construct a new profile when `PhysicalData` or `ActivityLevel` changes; replace goal values directly when only goal fields change. | Recomputes derived goals when their inputs change and avoids unnecessary profile recalculation for manual goal-only edits. |
 | **Repository Pattern** | Persist the updated goals through the user's nutritional profile repository. | Allows updated goals to be retrieved for subsequent application use. |
+| **Same-day DailyLog Snapshot Refresh** | In the same transaction, update today's existing `DailyLog` target snapshot from the saved profile goal. | Keeps current-day progress aligned with confirmed goal edits while preserving historical daily targets. |
 | **Authenticated User Context** | Associate the edit with the authenticated user's profile. | Ensures that each user updates their own goals. |
 
 ### 3.2. Design Decisions & Architecture
@@ -90,8 +93,8 @@ The following diagram illustrates the user nutritional profile and nutritional g
 3. **Direct Goal-Only Updates**
    When changes are limited to `CaloricTarget` and/or `MacroBreakdown`, create the corresponding updated goal value(s) and replace them without recalculating the profile.
 
-4. **Persist Confirmed Changes**
-   Persist the resulting goal or new profile for the authenticated user after validation and application of the confirmed changes.
+4. **Persist Confirmed Changes and Refresh Today's Log**
+   Persist the resulting profile and, if a daily log exists for today, replace its goal snapshot using the saved profile's calorie target and macro breakdown. Perform both updates in the same transaction. Do not alter logs for earlier dates, and do not create a log solely because goals changed.
 
 5. **Preserve Profile Ownership**
    Associate all edits with the authenticated user's profile so each user updates only their own data.
@@ -117,7 +120,8 @@ The following diagram illustrates the user nutritional profile and nutritional g
 2. **Authentication & Orchestration:** The token authentication filter validates the access token. The controller delegates the confirmed changes and authenticated user ID to the profile editing application service.
 3. **Load & Validate:** The service loads the user's current profile and validates the selected changes.
 4. **Apply Changes:** If `PhysicalData` and/or `ActivityLevel` changed, the service calculates a new nutritional goal and constructs a new profile incorporating any confirmed goal edits. If only goal fields changed, it creates the updated goal value(s) and replaces them without recalculating the profile.
-5. **Persistence & Response:** The resulting profile is saved and the response returns the updated profile and goals.
+5. **Persistence & Current-Day Sync:** The resulting profile is saved. If today's daily log exists, its target snapshot is refreshed from the saved goal in the same transaction; no log is created when none exists. Earlier logs are untouched.
+6. **Response:** Return the updated profile and goals.
 
 ### 5.2. Key Methods and Classes
 
@@ -131,6 +135,8 @@ The following diagram illustrates the user nutritional profile and nutritional g
 | `UserNutritionalProfileFactory` | `createProfile(...)` | Creates a new profile after recalculation when profile inputs change. |
 | `UserNutritionalProfile` | Goal replacement / profile creation | Holds the resulting physical data, activity level, and nutritional goal. |
 | `UserNutritionalProfileRepository` | `save(UserNutritionalProfile)` | Persists the updated nutritional profile. |
+| `DailyLogRepository` | `findByUserIdAndDate(...)`, `save(DailyLog)` | Finds and updates today's log snapshot as part of the goal-edit transaction; prior dates are not queried or changed. |
+| `DailyGoalSnapshot` / `DailyLog` | `from(NutritionalGoal)` / `updateGoalSnapshot(...)` | Builds and replaces the current day's calorie and macro target snapshot. |
 | `UserNutritionalProfileMapper` | `toDTO(...)` | Maps the updated profile and operation result into the response. |
 
 ### 5.3. Data Flow Example
@@ -150,5 +156,7 @@ EditUserNutritionalProfileController.editProfile()
 │  └─ UserNutritionalProfileFactory.createProfile() → New profile
 ├─ Else (goal fields only): create updated NutritionalGoal value(s) and replace them
 ├─ UserNutritionalProfileRepository.save() → Persists resulting profile
+├─ DailyLogRepository.findByUserIdAndDate(today)
+│  └─ If today's log exists: replace goal snapshot from saved profile and save in same transaction
 └─ UserNutritionalProfileMapper.toDTO() → Returns updated profile and goals
 ```

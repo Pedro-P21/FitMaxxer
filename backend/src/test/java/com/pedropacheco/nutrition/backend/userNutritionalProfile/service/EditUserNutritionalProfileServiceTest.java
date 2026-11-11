@@ -1,5 +1,8 @@
 package com.pedropacheco.nutrition.backend.userNutritionalProfile.service;
 
+import com.pedropacheco.nutrition.backend.dailyLog.domain.DailyGoalSnapshot;
+import com.pedropacheco.nutrition.backend.dailyLog.domain.DailyLog;
+import com.pedropacheco.nutrition.backend.dailyLog.repository.DailyLogRepository;
 import com.pedropacheco.nutrition.backend.userAuth.domain.UserId;
 import com.pedropacheco.nutrition.backend.userNutritionalProfile.domain.*;
 import com.pedropacheco.nutrition.backend.userNutritionalProfile.dto.*;
@@ -9,6 +12,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -17,6 +24,7 @@ import static org.mockito.Mockito.*;
 class EditUserNutritionalProfileServiceTest {
     private UserProfileRepository repository;
     private NutritionalGoalCalculatorService calculator;
+    private DailyLogRepository dailyLogRepository;
     private EditUserNutritionalProfileService service;
     private UserNutritionalProfile existing;
 
@@ -24,13 +32,44 @@ class EditUserNutritionalProfileServiceTest {
     void setUp() {
         repository = mock(UserProfileRepository.class);
         calculator = mock(NutritionalGoalCalculatorService.class);
+        dailyLogRepository = mock(DailyLogRepository.class);
         UserProfileFactory factory = new UserProfileFactory();
-        service = new EditUserNutritionalProfileService(repository, factory, calculator, new UserProfileMapper());
+        service = new EditUserNutritionalProfileService(repository, factory, calculator, new UserProfileMapper(),
+                dailyLogRepository, Clock.fixed(Instant.parse("2026-11-11T12:00:00Z"), ZoneOffset.UTC));
         existing = profile();
         when(repository.findByUserId(any(UserId.class))).thenReturn(Optional.of(existing));
         when(repository.save(any(UserNutritionalProfile.class))).thenAnswer(call -> call.getArgument(0));
         when(calculator.calculateGoal(any(), any(), any())).thenReturn(
                 new NutritionalGoal(2000, 2000, new MacroBreakdown(175, 200, 56)));
+    }
+
+    @Test
+    void refreshesTodaysDailyLogTargetSnapshotAfterGoalEdit() {
+        DailyLog today = new DailyLog(new UserId("user-123"), LocalDate.of(2026, 11, 11), 1L,
+                new DailyGoalSnapshot(1800, 100, 150, 89));
+        when(dailyLogRepository.findByUserIdAndDate("user-123", LocalDate.of(2026, 11, 11)))
+                .thenReturn(Optional.of(today));
+        ProfileChangesDTO changes = changes();
+        changes.calorieTarget = 2200;
+
+        service.editUserProfile("user-123", changes);
+
+        assertEquals(2200, today.getGoalSnapshot().getCalorieTarget());
+        assertEquals(192, today.getGoalSnapshot().getProteinTargetGrams());
+        assertEquals(220, today.getGoalSnapshot().getCarbohydrateTargetGrams());
+        assertEquals(61, today.getGoalSnapshot().getFatTargetGrams());
+        verify(dailyLogRepository).save(today);
+    }
+
+    @Test
+    void doesNotCreateOrSaveDailyLogWhenNoLogExistsToday() {
+        ProfileChangesDTO changes = changes();
+        changes.calorieTarget = 2200;
+
+        service.editUserProfile("user-123", changes);
+
+        verify(dailyLogRepository).findByUserIdAndDate("user-123", LocalDate.of(2026, 11, 11));
+        verify(dailyLogRepository, never()).save(any(DailyLog.class));
     }
 
     @Test

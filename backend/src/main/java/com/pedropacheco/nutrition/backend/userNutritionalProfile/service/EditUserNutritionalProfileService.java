@@ -1,5 +1,7 @@
 package com.pedropacheco.nutrition.backend.userNutritionalProfile.service;
 
+import com.pedropacheco.nutrition.backend.dailyLog.domain.DailyGoalSnapshot;
+import com.pedropacheco.nutrition.backend.dailyLog.repository.DailyLogRepository;
 import com.pedropacheco.nutrition.backend.userAuth.domain.UserId;
 import com.pedropacheco.nutrition.backend.userNutritionalProfile.domain.*;
 import com.pedropacheco.nutrition.backend.userNutritionalProfile.dto.NutritionalGoalResponseDTO;
@@ -9,6 +11,9 @@ import com.pedropacheco.nutrition.backend.userNutritionalProfile.factory.UserPro
 import com.pedropacheco.nutrition.backend.userNutritionalProfile.repository.UserProfileRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Clock;
+import java.time.LocalDate;
 
 @Service
 public class EditUserNutritionalProfileService {
@@ -20,15 +25,21 @@ public class EditUserNutritionalProfileService {
     private final UserProfileFactory profileFactory;
     private final NutritionalGoalCalculatorService goalCalculator;
     private final UserProfileMapper profileMapper;
+    private final DailyLogRepository dailyLogRepository;
+    private final Clock clock;
 
     public EditUserNutritionalProfileService(UserProfileRepository profileRepository,
                                              UserProfileFactory profileFactory,
                                              NutritionalGoalCalculatorService goalCalculator,
-                                             UserProfileMapper profileMapper) {
+                                             UserProfileMapper profileMapper,
+                                             DailyLogRepository dailyLogRepository,
+                                             Clock clock) {
         this.profileRepository = profileRepository;
         this.profileFactory = profileFactory;
         this.goalCalculator = goalCalculator;
         this.profileMapper = profileMapper;
+        this.dailyLogRepository = dailyLogRepository;
+        this.clock = clock;
     }
 
     @Transactional
@@ -56,6 +67,11 @@ public class EditUserNutritionalProfileService {
                 physicalData, activityLevel, goal, physicalChanged || activityChanged);
 
         UserNutritionalProfile savedProfile = profileRepository.save(updatedProfile);
+        dailyLogRepository.findByUserIdAndDate(profileOwnerId.getValue(), LocalDate.now(clock))
+                .ifPresent(dailyLog -> {
+                    dailyLog.updateGoalSnapshot(DailyGoalSnapshot.from(savedProfile.getNutritionalGoal()));
+                    dailyLogRepository.save(dailyLog);
+                });
         return profileMapper.toDTO(savedProfile, SUCCESS_MESSAGE);
     }
 

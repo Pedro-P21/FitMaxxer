@@ -69,6 +69,11 @@ public class DailyLog {
         return DailyNutritionSummary.from(consumed, goalSnapshot);
     }
 
+    /** Refreshes today's target snapshot after the user's active goals change. */
+    public void updateGoalSnapshot(DailyGoalSnapshot goalSnapshot) {
+        this.goalSnapshot = Objects.requireNonNull(goalSnapshot, "Goal snapshot cannot be null.");
+    }
+
     public DailyLogId getId() { return id; }
     public UserId getUserId() { return new UserId(userId); }
     public LogDate getDate() { return date; }
