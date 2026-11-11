@@ -93,8 +93,8 @@ History can therefore be read from persisted `DailyLog` aggregates and mapped to
 6. **Keep history read-only.** US005 does not create logs for empty dates or modify stored logs.
 
 ### 3.3. Sequence Diagram (SD)
-[US005 SD source](./US005_SD.puml)
 
+![US005_SD.svg](US005_SD.svg)
 
 ## 4. Tests
 

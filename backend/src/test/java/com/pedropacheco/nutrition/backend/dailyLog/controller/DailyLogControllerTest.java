@@ -4,8 +4,10 @@ import com.pedropacheco.nutrition.backend.cli.TerminalRunner;
 import com.pedropacheco.nutrition.backend.dailyLog.dto.DailyLogResponseDTO;
 import com.pedropacheco.nutrition.backend.dailyLog.dto.DailyNutritionSummaryDTO;
 import com.pedropacheco.nutrition.backend.dailyLog.dto.NutrientValuesDTO;
+import com.pedropacheco.nutrition.backend.dailyLog.dto.LogHistoryResponseDTO;
 import com.pedropacheco.nutrition.backend.dailyLog.dto.AddMealItemRequestDTO;
 import com.pedropacheco.nutrition.backend.dailyLog.service.DailyLogApplicationService;
+import com.pedropacheco.nutrition.backend.dailyLog.service.LogHistoryService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -29,6 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class DailyLogControllerTest {
     @Autowired private MockMvc mockMvc;
     @MockitoBean private DailyLogApplicationService dailyLogApplicationService;
+    @MockitoBean private LogHistoryService logHistoryService;
     @MockitoBean private TerminalRunner terminalRunner;
 
     @Test
@@ -51,6 +54,29 @@ class DailyLogControllerTest {
     void requiresAuthentication() throws Exception {
         mockMvc.perform(get("/api/daily-log/today")).andExpect(status().isUnauthorized());
         verifyNoInteractions(dailyLogApplicationService);
+    }
+
+    @Test
+    void returnsMonthlyHistoryForAuthenticatedUser() throws Exception {
+        when(logHistoryService.getPastHistory("user-1", 10, 2026))
+                .thenReturn(new LogHistoryResponseDTO(2026, 10, List.of()));
+
+        mockMvc.perform(get("/api/daily-log/history").param("month", "10").param("year", "2026")
+                        .with(jwt().jwt(token -> token.subject("user-1")))
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.year").value(2026))
+                .andExpect(jsonPath("$.month").value(10))
+                .andExpect(jsonPath("$.logs").isEmpty());
+
+        verify(logHistoryService).getPastHistory("user-1", 10, 2026);
+    }
+
+    @Test
+    void requiresAuthenticationForMonthlyHistory() throws Exception {
+        mockMvc.perform(get("/api/daily-log/history").param("month", "10").param("year", "2026"))
+                .andExpect(status().isUnauthorized());
+        verifyNoInteractions(logHistoryService);
     }
 
     @Test
