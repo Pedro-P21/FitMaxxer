@@ -2,7 +2,7 @@ package com.pedropacheco.nutrition.backend.foodCatalog.controller;
 
 import com.pedropacheco.nutrition.backend.foodCatalog.dto.FoodCatalogResponseDTO;
 import com.pedropacheco.nutrition.backend.foodCatalog.dto.FoodItemDTO;
-import com.pedropacheco.nutrition.backend.foodCatalog.service.FoodCatalogAggregatorService;
+import com.pedropacheco.nutrition.backend.foodCatalog.service.FoodCatalogSearchService;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -16,7 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class FoodCatalogControllerTest {
-    private final FoodCatalogAggregatorService service = mock(FoodCatalogAggregatorService.class);
+    private final FoodCatalogSearchService service = mock(FoodCatalogSearchService.class);
     private final MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new FoodCatalogController(service)).build();
 
     @Test

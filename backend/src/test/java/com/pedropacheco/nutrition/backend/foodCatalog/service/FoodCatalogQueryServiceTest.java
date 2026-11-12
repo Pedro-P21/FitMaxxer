@@ -1,5 +1,6 @@
 package com.pedropacheco.nutrition.backend.foodCatalog.service;
 
+import com.pedropacheco.nutrition.backend.foodCatalog.cache.FoodDetailsCache;
 import com.pedropacheco.nutrition.backend.foodCatalog.dto.FoodCatalogResponseDTO;
 import com.pedropacheco.nutrition.backend.foodCatalog.dto.FoodItemDTO;
 import org.junit.jupiter.api.Test;
@@ -9,8 +10,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class FoodCatalogQueryServiceTest {
-    private final FoodCatalogAggregatorService aggregator = mock(FoodCatalogAggregatorService.class);
-    private final FoodCatalogQueryService service = new FoodCatalogQueryService(aggregator);
+    private final FoodCatalogSearchService aggregator = mock(FoodCatalogSearchService.class);
+    private final FoodDetailsCache cache = new FoodDetailsCache(new org.springframework.cache.concurrent.ConcurrentMapCacheManager("foodDetailsCache"));
+    private final FoodCatalogQueryService service = new FoodCatalogQueryService(aggregator, cache);
 
     @Test
     void resolvesTheExactSelectedCatalogFoodAndReturnsTrustedDetails() {

@@ -2,7 +2,7 @@ package com.pedropacheco.nutrition.backend.cli;
 
 import com.pedropacheco.nutrition.backend.foodCatalog.dto.FoodCatalogResponseDTO;
 import com.pedropacheco.nutrition.backend.foodCatalog.dto.FoodItemDTO;
-import com.pedropacheco.nutrition.backend.foodCatalog.service.FoodCatalogAggregatorService;
+import com.pedropacheco.nutrition.backend.foodCatalog.service.FoodCatalogSearchService;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -11,9 +11,9 @@ import java.util.Scanner;
 /** Console screen for trying US003 keyword and barcode searches. */
 @Component
 public class FoodCatalogSearchUI {
-    private final FoodCatalogAggregatorService foodCatalogService;
+    private final FoodCatalogSearchService foodCatalogService;
 
-    public FoodCatalogSearchUI(FoodCatalogAggregatorService foodCatalogService) {
+    public FoodCatalogSearchUI(FoodCatalogSearchService foodCatalogService) {
         this.foodCatalogService = foodCatalogService;
     }
 
