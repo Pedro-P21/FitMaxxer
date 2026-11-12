@@ -49,7 +49,7 @@ As a User, I want to be able to search through a catalog of multiple foods, so t
 
 ##### 1.7. Assumptions and Decisions
 - External API responses will be mapped to internal domain value objects/DTOs to avoid tight coupling with third-party schemas.
-- Caching strategies will be introduced to minimize redundant network calls for frequent searches.
+- Search responses are cached by normalized query. `FoodCatalogSearchService` also populates food details by provider-qualified food ID on both search-cache hits and misses. Each cache has a 500-entry limit and expires entries 24 hours after write; neither performs background refresh.
 - More than one API´s may be used simultaneously to provide a comprehensive catalog. 
 
 ## 2. Analysis
@@ -64,7 +64,7 @@ As a User, I want to be able to search through a catalog of multiple foods, so t
 | Architectural Component / Pattern | Choice & Implementation                                                                 | Rationale & Benefit                                                                                         |
 |:----------------------------------|:----------------------------------------------------------------------------------------|:------------------------------------------------------------------------------------------------------------|
 | **Adapter Pattern**               | Dedicated client adapters for each external food API (`OpenFoodFactsAdapter`).          | Isolates third-party API specifics, authentication rules, and payload parsing from the core business logic. |
-| **Facade / Aggregator Service**   | `FoodCatalogService` coordinates simultaneous queries across all active adapters.       | Unifies multi-source search into a single coherent operation for the application layer.                     |
+| **Facade / Aggregator Service**   | `FoodCatalogSearchService` populates food details; the cached aggregator queries configured providers.       | Unifies multi-source search into a single coherent operation for the application layer.                     |
 | **Data Normalization**            | Map diverse external JSON schemas into a unified internal `FoodItemDTO` / domain model. | Ensures consistent data representation for the UI and downstream logging use cases (US002/US004).           |
 
 ### 3.2. Design Decisions & Architecture
@@ -91,13 +91,19 @@ User Search Query ("Bread" or Barcode)
 ↓
 FoodCatalogController
 ↓
-FoodCatalogAggregatorService (Concurrent Dispatch)
+FoodCatalogSearchService
+↓
+Spring search cache → FoodCatalogAggregatorService (on a miss)
 ├── OpenFoodFactsClient ──> [Open Food Facts API]
 ├── AnotherAPIClient ──> [Another API]
 ↓
 Result Normalization & Deduplication
 ↓
-Unified FoodCatalogResponseDTO -> Returned to User/UI
+Unified FoodCatalogResponseDTO
+↓
+FoodCatalogSearchService → FoodDetailsCache (each food by ID, on hits and misses)
+↓
+Returned to User/UI
 ```
 
 
@@ -110,6 +116,7 @@ Unified FoodCatalogResponseDTO -> Returned to User/UI
 - Test aggregator behavior when all APIs succeed.
 - Test graceful degradation when one or more external API clients time out or return errors.
 - Test DTO mapping consistency across different source payloads.
+- Verify keyword searches populate food details, cached searches repopulate evicted details, and missing/expired details fall back to catalog lookup.
 - Test Open Food Facts barcode response parsing and the nutrition-data fallback.
 - An opt-in live test verifies barcode `5601312507994` through the client, adapter, and domain mapper (`OPENFOODFACTS_LIVE=true`).
 
@@ -118,17 +125,20 @@ Unified FoodCatalogResponseDTO -> Returned to User/UI
 
 ### 6.1. Overall Flow
 1. **User Request:** The user submits a search string or barcode via the UI/CLI.
-2. **Orchestration:** The controller delegates the query to the `FoodCatalogAggregatorService`.
-3. **Multi-Source Dispatch:** The service queries all configured API adapters (Open Food Facts, FatSecret, MFDS, EuroFIR, INSA).
-4. **Normalization & Aggregation:** Responses are parsed, normalized into common DTOs, merged, and filtered.
-5. **Presentation:** The unified search results are presented to the user for selection.
+2. **Orchestration:** The controller delegates to `FoodCatalogSearchService`, which calls the Spring-cached `FoodCatalogAggregatorService`. A search-cache hit bypasses the aggregator method body.
+3. **Provider Dispatch:** On a cache miss, the aggregator queries configured providers (currently Open Food Facts).
+4. **Normalization & Aggregation:** Provider responses are mapped to domain foods, merged, deduplicated, and mapped to the cached response DTO.
+5. **Details Caching & Presentation:** The search facade caches each returned food by ID, even when the response came from the search cache. The UI presents the returned foods. Later US004/US006 lookups read cached details first, falling back to catalog lookup when needed.
 
 ### 6.2. Key Methods and Classes
 
 | Class                           | Method              | Responsibility                                                               |
 |:--------------------------------|:--------------------|:-----------------------------------------------------------------------------|
 | `FoodCatalogController`         | `searchFood(query)` | Entry point for catalog search requests.                                     |
-| `FoodCatalogAggregatorService`  | `search(query)`     | Coordinates concurrent calls across all API adapters and merges results.     |
+| `FoodCatalogSearchService` | `search(query)` | Delegates to the cached aggregator and populates food details from every returned response. |
+| `FoodCatalogAggregatorService` | `search(query)` | Queries providers on search-cache misses, merges results, and returns normalized response DTOs. |
+| `FoodDetailsCache` | `get(foodId)` / `put(food)` | Reads and stores normalized food definitions by complete provider-qualified ID. |
+| `FoodCatalogQueryService` | `getFoodDetails(foodId)` | Reads cached details first; falls back to the search facade on a miss. |
 | `OpenFoodFactsAdapter` (et al.) | `fetchFoods(query)` | Communicates with the specific external API and maps raw data.               |
 | `FoodItemDTO`                   | N/A                 | Represents the unified, standardized food item structure across all sources. |
 

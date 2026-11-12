@@ -139,3 +139,7 @@ To understand how this operates in practice, consider the following real-world s
     - **Backend Action:** Spring checks the `foodSearchCache` for the key `"banana"`. Since it exists and hasn't expired, a **Cache Hit** occurs.
     - **Execution:** The external HTTP call is **bypassed entirely**. The cached list of `FoodItem` objects is returned instantly from server memory.
     - **Result:** Zero network latency, zero consumption of Open Food Facts rate limits, and an instantaneous response for the user.
+
+## Food details cache
+
+Catalog search goes through `FoodCatalogSearchService`, which delegates to the cached aggregator and writes each normalized result into `foodDetailsCache` under its complete provider-qualified ID. This also happens on search-cache hits. `FoodCatalogQueryService` reads those details first and falls back to the existing catalog lookup on a miss. Both caches use the configured 500-entry limit and 24-hour expiration after write; they are independent process-local caches. Re-populating details from cached search results resets their expiration without fetching fresh upstream data.

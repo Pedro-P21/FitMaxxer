@@ -1,4 +1,4 @@
-@startuml US003-SD
+@startuml US003_SD
 autonumber
 skinparam monochrome true
 skinparam packageStyle rectangle
@@ -8,132 +8,110 @@ actor "User" as Actor
 participant "Flutter App" as UI
 participant ":JWT Authentication Filter" as Auth
 participant ":FoodCatalogController" as Ctrl
+participant ":FoodCatalogSearchService" as Search
+participant "Spring Cache Interceptor" as CacheProxy
+participant ":foodSearchCache" as SearchCache
 participant ":FoodCatalogAggregatorService" as Svc
 participant ":OpenFoodFactsAdapter" as Adapter
 participant ":OpenFoodFactsClient" as Client
 participant "Open Food Facts API" as OFF
-participant "Jackson ObjectMapper" as Json
-participant ":OpenFoodFactsProductDTO" as ExternalDTO
-participant ":FoodItemMapper" as Mapper
+participant ":OpenFoodFactsMapper" as Mapper
 participant ":FoodItemFactory" as Factory
-participant ":FoodItem / Value Objects" as Domain
 participant ":FoodCatalogResponseMapper" as ResponseMapper
-participant ":FoodCatalogResponseDTO" as ResponseDTO
-
-
-note over Svc,Client
-  Backend @Cacheable foodSearchCache uses a normalized query key
-  (lowercase + trim; configured maximumSize=500, expireAfterWrite=24h).
-  A hit returns cached domain results. A miss invokes the adapters.
-end note
+participant ":FoodDetailsCache" as Details
+participant ":foodDetailsCache" as DetailsCache
 
 activate Actor
 Actor -> UI : enters keyword or barcode
 activate UI
 UI -> Auth : GET /api/foods?query={keywordOrBarcode}\nAuthorization: Bearer <access-token>
 activate Auth
-Auth -> Auth : verify signature, expiry, issuer, audience, token_use\nand establish principal from sub
+Auth -> Auth : authenticate and establish principal
 Auth -> Ctrl : forward authenticated request
-deactivate Auth
 activate Ctrl
+deactivate Auth
 
-Ctrl -> Svc : search(query, optionalFilters)
-activate Svc
-Svc -> Svc : normalize query for cache key
+Ctrl -> Search : search(query)
+activate Search
+note over CacheProxy: this happens automatically managed by spring framework
+Search -> CacheProxy : search(query)
+activate CacheProxy
+CacheProxy -> SearchCache : get(query.trim().toLowerCase())
+activate SearchCache
+SearchCache --> CacheProxy : cached response or cache miss
+deactivate SearchCache
 
-alt Cache hit
-  Svc --> Ctrl : cached List<FoodItem>
-else Cache miss
-    Svc -> Adapter : fetchFoods(query)
-    activate Adapter
-    Adapter -> Client : GET product search / barcode lookup
-    activate Client
-    Client -> OFF : HTTPS request with encoded query
-    activate OFF
-    OFF --> Client : HTTP response with raw JSON
-    deactivate OFF
-    Client --> Adapter : raw JSON payload
-    deactivate Client
-
-    note right of Adapter
-      Parsing / normalization boundary:
-      1. Jackson reads raw JSON into provider DTOs
-         (products, code, product_name, nutriments,
-         serving_size, and units).
-      2. FoodItemMapper selects usable fields and converts
-         provider naming/units to the internal representation.
-      3. FoodItemFactory validates and creates FoodId,
-         FoodName, optional Barcode, NutrientComposition,
-         ServingSize, then the FoodItem entity root.
-      Invalid or incomplete products are skipped/reported;
-      third-party DTOs do not enter the domain model.
+alt Search cache hit
+    note right of CacheProxy
+        Reuse the cached FoodCatalogResponseDTO.
+        The aggregator method body is skipped.
     end note
-
-    Adapter -> Json : readValue(rawJson, OpenFoodFactsSearchResponseDTO)
-    activate Json
-    Json -> ExternalDTO : deserialize products and provider fields
-    activate ExternalDTO
-    ExternalDTO --> Json : typed external response DTO
-    deactivate ExternalDTO
-    Json --> Adapter : provider response DTO
-    deactivate Json
-
-    Adapter -> Mapper : toDomainItems(providerResponseDTO)
-    activate Mapper
-    loop each provider product
-      Mapper -> Factory : createFoodItem(id/code, name, barcode,\nnutriments, serving size)
-      activate Factory
-      Factory -> Domain : create validated FoodId, FoodName,\nBarcode?, NutrientComposition, ServingSize
-      activate Domain
-      Domain --> Factory : validated value objects
-      deactivate Domain
-      Factory -> Domain : construct FoodItem
-      activate Domain
-      Domain --> Factory : valid FoodItem
-      deactivate Domain
-      Factory --> Mapper : FoodItem or validation failure
-      deactivate Factory
+else Search cache miss
+    CacheProxy -> Svc : search(query)
+    activate Svc
+    loop Each configured provider (currently Open Food Facts)
+        Svc -> Adapter : search(query.trim())
+        activate Adapter
+        Adapter -> Client : search(query) / findByBarcode(query)
+        activate Client
+        Client -> OFF : HTTPS keyword search or barcode lookup
+        activate OFF
+        OFF --> Client : product JSON
+        deactivate OFF
+        Client -> Client : deserialize response into provider DTOs
+        Client --> Adapter : provider DTOs
+        deactivate Client
+        Adapter -> Mapper : toDomainItems(response) / toDomainItem(product)
+        activate Mapper
+        loop Each usable product
+            Mapper -> Factory : createFoodItem(id, name, brand, barcode,\nnutrients, basis, serving quantity and unit)
+            activate Factory
+            Factory --> Mapper : FoodItem with value objects
+            deactivate Factory
+        end
+        Mapper --> Adapter : normalized food items
+        deactivate Mapper
+        Adapter --> Svc : List<FoodItem>
+        deactivate Adapter
     end
-    Mapper --> Adapter : normalized List<FoodItem>
-    deactivate Mapper
-    Adapter --> Svc : provider results
-    deactivate Adapter
-  end
+    Svc -> Svc : merge and deduplicate by food ID
+    Svc -> ResponseMapper : toResponseDTO(foodItems)
+    activate ResponseMapper
+    ResponseMapper --> Svc : FoodCatalogResponseDTO
+    deactivate ResponseMapper
+    Svc --> CacheProxy : FoodCatalogResponseDTO
+    deactivate Svc
+    CacheProxy -> SearchCache : put(normalized query, response)
+    activate SearchCache
+    SearchCache --> CacheProxy
+    deactivate SearchCache
+end
 
-  Svc -> Svc : merge results, deduplicate, apply filters
-  Svc -> Svc : cache successful result list
+CacheProxy --> Search : FoodCatalogResponseDTO
+deactivate CacheProxy
 
+loop Each food in the response (also on search cache hits)
+    Search -> Details : put(foodItemDTO)
+    activate Details
+    Details -> DetailsCache : put(food.foodId(), food)
+    activate DetailsCache
+    DetailsCache --> Details
+    deactivate DetailsCache
+    Details --> Search
+    deactivate Details
+end
 
-Svc -> ResponseMapper : toResponseDTO(foodItems)
-activate ResponseMapper
-ResponseMapper -> ResponseDTO : map to unified summaries\n(foodId, name, barcode, serving size, nutrients)
-activate ResponseDTO
-ResponseDTO --> ResponseMapper : FoodCatalogResponseDTO
-deactivate ResponseDTO
-ResponseMapper --> Svc : response DTO
-deactivate ResponseMapper
-Svc --> Ctrl : response DTO
-deactivate Svc
-
-alt Results found
-  Ctrl --> UI : 200 OK + FoodCatalogResponseDTO
-  UI --> Actor : displays normalized matching food items
-
+Search --> Ctrl : FoodCatalogResponseDTO
+deactivate Search
+Ctrl --> UI : 200 OK + normalized food results
 deactivate Ctrl
+UI --> Actor : displays matching foods
 
 opt User selects a result to inspect details
-  Actor -> UI : selects FoodItem
-  UI --> Actor : displays complete available nutritional breakdown
+    Actor -> UI : selects food
+    UI --> Actor : displays available nutritional breakdown
 end
 
 deactivate UI
 deactivate Actor
-
-== Failure handling ==
-note over Svc,OFF
-  If an upstream API times out or fails, the adapter reports that source
-  failure and the aggregator returns results from other successful sources.
-  If every source fails, the controller maps the upstream failure to a
-  clear service-unavailable response. Do not cache failed calls.
-end note
 @enduml

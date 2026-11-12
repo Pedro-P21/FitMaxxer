@@ -26,7 +26,7 @@ As a User, I want to be able to see a progress trend showcasing changes over tim
 ## US008. Authentication and Account Management
 As a User, I want to create an account and log in securely, so that my personal data, custom recipes, and history are safely synchronized and saved.
  
-## US009. Editing and Deleting Past Logs
+## US009. Editing and Deleting Logs
 As a User, I want to be able to edit or delete items I previously logged in a meal, so that I can correct mistakes or change my mind about what I ate.
 
 ## US010. Meal Duplication
@@ -49,3 +49,6 @@ As a User, I want to be able to create my own nutritonal plan, based on my perso
 
 ## US015. Addaptive Diet 
 As a User, I want to set a dietary goal, and i want the application to slowly change my daily targets to "ease into the diet", gradually changing the targets along the time, instead of setting a fixed target.
+
+## US016. Google Login
+As a User, I want to be able to log in with my Google account.
