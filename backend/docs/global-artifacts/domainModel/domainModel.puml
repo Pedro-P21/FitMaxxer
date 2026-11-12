@@ -34,10 +34,15 @@ package "Food Catalog Aggregate" {
 }
 
 package "Recipe & Custom Food Aggregate" {
-    class CustomRecipe <<Entity Root>> {}
+    class CustomRecipe <<Entity Root>> {
+        numberOfServings : Decimal
+    }
+    class RecipeMacros <<Entity>> {}
     class RecipeId <<Value Object>>  {}
     class RecipeName <<Value Object>> {}
-    class RecipeIngredients <<Value Object>> {}
+    class RecipeIngredients <<Entity>> {}
+    class IngredientSnapshot <<Value Object>> {}
+    class IngredientQuantity <<Value Object>> {}
 }
 
 package "Meal & Daily Log Aggregate" {
@@ -79,8 +84,12 @@ FoodItem "1" *-- "1" Brand
 
 CustomRecipe "1" *-- "1" RecipeId
 CustomRecipe "1" *-- "1" RecipeName
+CustomRecipe "1" *-- "1" RecipeMacros : "whole-recipe totals"
 CustomRecipe "1" *-- "1..*" RecipeIngredients
 CustomRecipe "1" --> "1" User : "created by"
+
+RecipeIngredients "1" *-- "1" IngredientSnapshot
+RecipeIngredients "1" *-- "1" IngredientQuantity
 
 DailyLog "1" *-- "1" DailyLogId
 DailyLog "1" *-- "1" LogDate
@@ -116,5 +125,10 @@ end note
 
 User -[hidden]-> UserNutritionalProfile
 UserNutritionalProfile -[hidden]-> ProgressTracker
-CustomRecipe -[hidden]-> DailyLog
+note bottom of RecipeMacros
+  Sum of scaled ingredient calories and macros.
+  Owned by CustomRecipe; no independent lifecycle.
+  Per-serving values = totals / numberOfServings.
+end note
+
 @enduml

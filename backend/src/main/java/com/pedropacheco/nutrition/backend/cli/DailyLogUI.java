@@ -4,7 +4,7 @@ import com.pedropacheco.nutrition.backend.dailyLog.dto.AddMealItemRequestDTO;
 import com.pedropacheco.nutrition.backend.dailyLog.dto.DailyLogResponseDTO;
 import com.pedropacheco.nutrition.backend.dailyLog.domain.PortionQuantity;
 import com.pedropacheco.nutrition.backend.foodCatalog.dto.FoodItemDTO;
-import com.pedropacheco.nutrition.backend.foodCatalog.service.FoodCatalogAggregatorService;
+import com.pedropacheco.nutrition.backend.foodCatalog.service.FoodCatalogSearchService;
 import com.pedropacheco.nutrition.backend.dailyLog.service.DailyLogApplicationService;
 import org.springframework.stereotype.Component;
 
@@ -16,10 +16,10 @@ import java.util.Scanner;
 @Component
 public class DailyLogUI {
     private final DailyLogApplicationService dailyLogService;
-    private final FoodCatalogAggregatorService foodCatalogService;
+    private final FoodCatalogSearchService foodCatalogService;
 
     public DailyLogUI(DailyLogApplicationService dailyLogService,
-                      FoodCatalogAggregatorService foodCatalogService) {
+                      FoodCatalogSearchService foodCatalogService) {
         this.dailyLogService = dailyLogService;
         this.foodCatalogService = foodCatalogService;
     }

@@ -1,0 +1,95 @@
+@startuml US006_SD
+autonumber 36
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+actor "User" as Actor
+participant "Frontend" as UI
+participant ":JWT Authentication Filter" as Auth
+participant ":CustomRecipeController" as Ctrl
+participant ":CustomRecipeApplicationService" as Service
+participant ":FoodCatalogQueryService (US003)" as FoodQuery
+participant ":CustomRecipeFactory" as Factory
+participant ":IngredientSnapshot" as Snapshot
+participant ":IngredientQuantity" as Quantity
+participant ":RecipeIngredient" as Ingredient
+participant ":RecipeMacros" as Macros
+participant ":CustomRecipe" as Recipe
+participant ":CustomRecipeRepository" as Repo
+participant ":CustomRecipeMapper" as Mapper
+participant ":CustomRecipeResponseDTO" as ResponseDTO
+
+activate Actor
+activate UI
+
+Actor -> UI : confirms recipe
+UI -> Auth : POST /api/recipes\n(body: name, numberOfServings, ingredient references and quantities)\nAuthorization: Bearer <access-token>
+activate Auth
+Auth -> Auth : extract authenticated userId
+Auth -> Ctrl : forward request with authenticated userId
+activate Ctrl
+deactivate Auth
+
+Ctrl -> Service : createRecipe(userId, requestDTO)
+activate Service
+loop Each selected catalog ingredient
+    Service -> FoodQuery : getFoodDetails(foodId)
+    activate FoodQuery
+    FoodQuery --> Service : FoodCatalogDetailsDTO
+    deactivate FoodQuery
+end
+
+Service -> Factory : createRecipe(userId, name, numberOfServings, resolvedIngredients)
+activate Factory
+
+loop Each resolved ingredient
+    Factory -> Snapshot ** : create(foodDetails)
+    activate Snapshot
+    Snapshot --> Factory : IngredientSnapshot
+    deactivate Snapshot
+    Factory -> Quantity ** : create(amount, unit)
+    activate Quantity
+    Quantity --> Factory : IngredientQuantity
+    deactivate Quantity
+    Factory -> Ingredient ** : create(snapshot, quantity)
+    activate Ingredient
+    Ingredient --> Factory : RecipeIngredient
+    deactivate Ingredient
+end
+
+Factory -> Factory : sum scaled ingredient calories and macros
+Factory -> Macros ** : create(totalCalories, totalProtein, totalCarbohydrates, totalFat)
+activate Macros
+Macros --> Factory : RecipeMacros
+deactivate Macros
+Factory -> Recipe ** : create(userId, name, ingredients, numberOfServings, recipeMacros)
+activate Recipe
+Recipe --> Factory : CustomRecipe
+deactivate Recipe
+Factory --> Service : CustomRecipe
+deactivate Factory
+
+Service -> Repo : save(recipe)
+activate Repo
+Repo --> Service : saved CustomRecipe
+deactivate Repo
+Service -> Mapper : toResponseDTO(savedRecipe)
+activate Mapper
+Mapper -> Recipe : getPerServingNutrition()
+activate Recipe
+Recipe --> Mapper : whole-recipe nutrition / numberOfServings
+deactivate Recipe
+Mapper -> ResponseDTO : map recipe, ingredients, numberOfServings, and nutrition
+activate ResponseDTO
+ResponseDTO --> Mapper : CustomRecipeResponseDTO
+deactivate ResponseDTO
+Mapper --> Service : CustomRecipeResponseDTO
+deactivate Mapper
+Service --> Ctrl : CustomRecipeResponseDTO
+deactivate Service
+Ctrl --> UI : 201 Created + recipe response\nLocation: /api/recipes/{recipeId}
+deactivate Ctrl
+UI --> Actor : displays saved recipe and calories/macros
+
+@enduml

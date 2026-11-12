@@ -1,0 +1,28 @@
+@startuml US006_SSD
+autonumber
+skinparam monochrome true
+skinparam shadowing false
+
+actor User
+participant System
+
+User -> System : Requests to create a recipe
+System --> User : Asks for a recipe name and number of servings
+User -> System : Provides the name and number of servings
+
+loop For each ingredient
+    User -> System : Searches for a food
+    System --> User : Displays matching foods
+    User -> System : Selects a food and specifies its quantity
+    System --> User : Displays the ingredient added to the recipe
+end
+
+User -> System : Confirms the recipe
+System --> User : Confirms the saved recipe and displays calories and macros
+
+User -> System : Requests saved recipes
+System --> User : Displays saved recipes
+User -> System : Selects a recipe, meal, and number of servings to log
+System --> User : Confirms the logged recipe and displays updated daily nutrition
+
+@enduml

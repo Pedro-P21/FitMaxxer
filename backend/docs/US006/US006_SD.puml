@@ -1,0 +1,151 @@
+@startuml US006_SD
+autonumber
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+actor "User" as Actor
+participant "Frontend" as UI
+participant ":JWT Authentication Filter" as Auth
+participant ":CustomRecipeController" as Ctrl
+participant ":CustomRecipeApplicationService" as Service
+participant ":FoodCatalogQueryService (US003)" as FoodQuery
+participant ":CustomRecipeFactory" as Factory
+participant ":IngredientSnapshot" as Snapshot
+participant ":IngredientQuantity" as Quantity
+participant ":RecipeIngredient" as Ingredient
+participant ":RecipeMacros" as Macros
+participant ":CustomRecipe" as Recipe
+participant ":CustomRecipeRepository" as Repo
+participant ":CustomRecipeMapper" as Mapper
+participant ":CustomRecipeResponseDTO" as ResponseDTO
+participant ":DailyLogController (US004)" as LogCtrl
+
+activate Actor
+Actor -> UI : starts a recipe and supplies name and numberOfServings
+activate UI
+
+loop For each ingredient
+    ref over Actor, FoodQuery
+        US003: search foods and select an ingredient
+    end ref
+    Actor -> UI : specifies ingredient quantity and unit
+    UI -> UI : add selection to unsaved recipe draft
+end
+
+Actor -> UI : confirms recipe
+UI -> Auth : POST /api/recipes\n(body: name, numberOfServings, ingredient references and quantities)\nAuthorization: Bearer <access-token>
+activate Auth
+Auth -> Auth : extract authenticated userId
+Auth -> Ctrl : forward request with authenticated userId
+activate Ctrl
+deactivate Auth
+
+Ctrl -> Service : createRecipe(userId, requestDTO)
+activate Service
+loop Each selected catalog ingredient
+    Service -> FoodQuery : getFoodDetails(foodId)
+    activate FoodQuery
+    FoodQuery --> Service : FoodCatalogDetailsDTO
+    deactivate FoodQuery
+end
+note right of Service
+    Saved custom-food ingredients are resolved through
+    the owner-scoped custom-food application service.
+    Manual custom-food creation is a separate flow.
+end note
+
+Service -> Factory : createRecipe(userId, name, numberOfServings, resolvedIngredients)
+activate Factory
+
+loop Each resolved ingredient
+    Factory -> Snapshot ** : create(foodDetails)
+    activate Snapshot
+    Snapshot --> Factory : IngredientSnapshot
+    deactivate Snapshot
+    Factory -> Quantity ** : create(amount, unit)
+    activate Quantity
+    Quantity --> Factory : IngredientQuantity
+    deactivate Quantity
+    Factory -> Ingredient ** : create(snapshot, quantity)
+    activate Ingredient
+    Ingredient --> Factory : RecipeIngredient
+    deactivate Ingredient
+end
+
+Factory -> Factory : sum scaled ingredient calories and macros
+Factory -> Macros ** : create(totalCalories, totalProtein, totalCarbohydrates, totalFat)
+activate Macros
+Macros --> Factory : RecipeMacros
+deactivate Macros
+Factory -> Recipe ** : create(userId, name, ingredients, numberOfServings, recipeMacros)
+activate Recipe
+Recipe --> Factory : CustomRecipe
+deactivate Recipe
+Factory --> Service : CustomRecipe
+deactivate Factory
+
+Service -> Repo : save(recipe)
+activate Repo
+Repo --> Service : saved CustomRecipe
+deactivate Repo
+Service -> Mapper : toResponseDTO(savedRecipe)
+activate Mapper
+Mapper -> Recipe : getPerServingNutrition()
+activate Recipe
+Recipe --> Mapper : whole-recipe nutrition / numberOfServings
+deactivate Recipe
+Mapper -> ResponseDTO : map recipe, ingredients, numberOfServings, and nutrition
+activate ResponseDTO
+ResponseDTO --> Mapper : CustomRecipeResponseDTO
+deactivate ResponseDTO
+Mapper --> Service : CustomRecipeResponseDTO
+deactivate Mapper
+Service --> Ctrl : CustomRecipeResponseDTO
+deactivate Service
+Ctrl --> UI : 201 Created + recipe response\nLocation: /api/recipes/{recipeId}
+deactivate Ctrl
+UI --> Actor : displays saved recipe and calories/macros
+
+== Browse saved recipes ==
+Actor -> UI : requests saved recipes
+UI -> Auth : GET /api/recipes?page=0&size=20\nAuthorization: Bearer <access-token>
+activate Auth
+Auth -> Ctrl : forward request with authenticated userId
+activate Ctrl
+deactivate Auth
+Ctrl -> Service : listRecipes(userId, page, size)
+activate Service
+Service -> Repo : findByUserId(userId, page, size)
+activate Repo
+Repo --> Service : page of saved recipes
+deactivate Repo
+Service -> Mapper : toPageResponseDTO(recipes)
+activate Mapper
+Mapper --> Service : recipe page response
+deactivate Mapper
+Service --> Ctrl : recipe page response
+deactivate Service
+Ctrl --> UI : 200 OK + saved recipes
+deactivate Ctrl
+UI --> Actor : displays saved recipes
+
+== Log a saved recipe ==
+Actor -> UI : selects recipe, meal type, and number of servings
+UI -> Auth : POST /api/daily-log/today/recipe-items\n(body: recipeId, mealType, quantity)\nAuthorization: Bearer <access-token>
+activate Auth
+Auth -> LogCtrl : forward request with authenticated userId
+activate LogCtrl
+deactivate Auth
+ref over LogCtrl, LogCtrl
+    US004: resolve the owner's saved recipe,
+    map per-serving nutrition into a DailyLog FoodSnapshot,
+    add the meal item and save today's log.
+end ref
+LogCtrl --> UI : 200 OK + updated DailyLogResponseDTO
+deactivate LogCtrl
+UI --> Actor : displays logged recipe and updated daily progress
+
+deactivate UI
+deactivate Actor
+@enduml

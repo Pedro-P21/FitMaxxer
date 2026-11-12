@@ -1,0 +1,61 @@
+@startuml US006_SD
+autonumber 37
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+actor "User" as Actor
+participant "Frontend" as UI
+participant ":JWT Authentication Filter" as Auth
+participant ":CustomRecipeController" as Ctrl
+participant ":CustomRecipeApplicationService" as Service
+participant ":CustomRecipe" as Recipe
+participant ":CustomRecipeRepository" as Repo
+participant ":CustomRecipeMapper" as Mapper
+participant ":DailyLogController (US004)" as LogCtrl
+
+activate Actor
+activate UI
+
+== Browse saved recipes ==
+Actor -> UI : requests saved recipes
+UI -> Auth : GET /api/recipes?page=0&size=20\nAuthorization: Bearer <access-token>
+activate Auth
+Auth -> Ctrl : forward request with authenticated userId
+activate Ctrl
+deactivate Auth
+Ctrl -> Service : listRecipes(userId, page, size)
+activate Service
+Service -> Repo : findByUserId(userId, page, size)
+activate Repo
+Repo --> Service : page of saved recipes
+deactivate Repo
+Service -> Mapper : toPageResponseDTO(recipes)
+activate Mapper
+Mapper --> Service : recipe page response
+deactivate Mapper
+Service --> Ctrl : recipe page response
+deactivate Service
+Ctrl --> UI : 200 OK + saved recipes
+deactivate Ctrl
+UI --> Actor : displays saved recipes
+
+== Log a saved recipe ==
+Actor -> UI : selects recipe, meal type, and number of servings
+UI -> Auth : POST /api/daily-log/today/recipe-items\n(body: recipeId, mealType, quantity)\nAuthorization: Bearer <access-token>
+activate Auth
+Auth -> LogCtrl : forward request with authenticated userId
+activate LogCtrl
+deactivate Auth
+ref over LogCtrl, LogCtrl
+    US004: resolve the owner's saved recipe,
+    map per-serving nutrition into a DailyLog FoodSnapshot,
+    add the meal item and save today's log.
+end ref
+LogCtrl --> UI : 200 OK + updated DailyLogResponseDTO
+deactivate LogCtrl
+UI --> Actor : displays logged recipe and updated daily progress
+
+deactivate UI
+deactivate Actor
+@enduml

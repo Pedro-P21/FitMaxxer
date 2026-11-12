@@ -1,0 +1,27 @@
+@startuml US006_SD
+autonumber
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+actor "User" as Actor
+participant "Frontend" as UI
+participant ":JWT Authentication Filter" as Auth
+participant ":CustomRecipeController" as Ctrl
+participant ":CustomRecipeApplicationService" as Service
+participant ":FoodCatalogQueryService (US003)" as FoodQuery
+
+
+activate Actor
+Actor -> UI : starts a recipe and supplies name and numberOfServings
+activate UI
+
+loop For each ingredient
+    ref over Actor, FoodQuery
+        US003: search foods and select an ingredient
+    end ref
+    Actor -> UI : specifies ingredient quantity and unit
+    UI -> UI : add selection to unsaved recipe draft
+end
+
+@enduml
