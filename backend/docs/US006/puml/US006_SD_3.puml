@@ -17,8 +17,13 @@ participant ":DailyLogController (US004)" as LogCtrl
 activate Actor
 activate UI
 
-== Browse saved recipes ==
-Actor -> UI : requests saved recipes
+== Browse saved recipes through US003 ==
+Actor -> UI : opens food catalog browsing
+UI --> Actor : offers open food catalog or personal recipes
+Actor -> UI : chooses personal recipes
+note over Actor, UI
+    Choosing the open catalog continues the existing US003 search flow.
+end note
 UI -> Auth : GET /api/recipes?page=0&size=20\nAuthorization: Bearer <access-token>
 activate Auth
 Auth -> Ctrl : forward request with authenticated userId
@@ -40,15 +45,43 @@ Ctrl --> UI : 200 OK + saved recipes
 deactivate Ctrl
 UI --> Actor : displays saved recipes
 
-== Log a saved recipe ==
-Actor -> UI : selects recipe, meal type, and number of servings
+Actor -> UI : selects recipe for details
+UI -> Auth : GET /api/recipes/{recipeId}\nAuthorization: Bearer <access-token>
+activate Auth
+Auth -> Ctrl : forward authenticated userId and recipeId
+activate Ctrl
+deactivate Auth
+Ctrl -> Service : getRecipe(userId, recipeId)
+activate Service
+Service -> Repo : findByIdAndUserId(recipeId, userId)
+activate Repo
+Repo --> Service : owned CustomRecipe with ingredients and macros
+deactivate Repo
+Service -> Mapper : toResponseDTO(recipe)
+activate Mapper
+Mapper --> Service : CustomRecipeResponseDTO
+deactivate Mapper
+Service --> Ctrl : CustomRecipeResponseDTO
+deactivate Service
+Ctrl --> UI : 200 OK + saved recipe details
+deactivate Ctrl
+UI --> Actor : displays ingredients, serving count, total and per-serving nutrition
+
+== Log a saved recipe through US004 ==
+Actor -> UI : chooses to add food in today's log
+UI --> Actor : offers open food catalog or personal recipes
+Actor -> UI : chooses personal recipes
+ref over Actor, Service
+    Reuse the personal recipe list and detail selection above.
+end ref
+Actor -> UI : selects meal type and number of recipe servings
 UI -> Auth : POST /api/daily-log/today/recipe-items\n(body: recipeId, mealType, quantity)\nAuthorization: Bearer <access-token>
 activate Auth
 Auth -> LogCtrl : forward request with authenticated userId
 activate LogCtrl
 deactivate Auth
 ref over LogCtrl, LogCtrl
-    US004: resolve the owner's saved recipe,
+    US004: addRecipeMealItem(userId, request) resolves the owner's saved recipe,
     map per-serving nutrition into a DailyLog FoodSnapshot,
     add the meal item and save today's log.
 end ref

@@ -2,6 +2,7 @@ package com.pedropacheco.nutrition.backend.dailyLog.domain;
 
 import com.pedropacheco.nutrition.backend.foodCatalog.domain.NutrientComposition;
 import jakarta.persistence.Embeddable;
+import jakarta.persistence.Column;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import java.math.BigDecimal;
@@ -12,12 +13,17 @@ public class FoodSnapshot {
     private String foodName;
     private String brand;
     private String barcode;
+    @Column(precision = 30, scale = 10)
     private BigDecimal caloriesKcal;
+    @Column(precision = 30, scale = 10)
     private BigDecimal proteinGrams;
+    @Column(precision = 30, scale = 10)
     private BigDecimal carbohydrateGrams;
+    @Column(precision = 30, scale = 10)
     private BigDecimal fatGrams;
     @Enumerated(EnumType.STRING)
     private NutrientComposition.Basis nutrientBasis;
+    @Column(precision = 30, scale = 10)
     private BigDecimal servingSizeQuantity;
     private String servingSizeUnit;
 

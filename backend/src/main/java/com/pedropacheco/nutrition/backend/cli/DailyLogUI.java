@@ -18,10 +18,13 @@ public class DailyLogUI {
     private final DailyLogApplicationService dailyLogService;
     private final FoodCatalogSearchService foodCatalogService;
 
+    private final PersonalRecipesUI personalRecipesUI;
+
     public DailyLogUI(DailyLogApplicationService dailyLogService,
-                      FoodCatalogSearchService foodCatalogService) {
+                      FoodCatalogSearchService foodCatalogService, PersonalRecipesUI personalRecipesUI) {
         this.dailyLogService = dailyLogService;
         this.foodCatalogService = foodCatalogService;
+        this.personalRecipesUI = personalRecipesUI;
     }
 
     public void show(String userId, Scanner scanner) {
@@ -45,6 +48,17 @@ public class DailyLogUI {
                 continue;
             }
 
+            System.out.println("Source: 1. Open food catalog  2. Personal recipes  0. Cancel");
+            String source = scanner.nextLine().trim();
+            if ("0".equals(source)) continue;
+            if ("2".equals(source)) {
+                logRecipe(userId, scanner);
+                continue;
+            }
+            if (!"1".equals(source)) {
+                System.out.println("[INFO] Select 1, 2, or 0.");
+                continue;
+            }
             FoodItemDTO selectedFood = chooseFood(scanner);
             if (selectedFood == null) continue;
             String mealType = chooseMealType(scanner);
@@ -60,6 +74,25 @@ public class DailyLogUI {
             } catch (RuntimeException exception) {
                 System.out.println("[ERROR] Could not add food: " + exception.getMessage());
             }
+        }
+    }
+
+    private void logRecipe(String userId, Scanner scanner) {
+        try {
+            var recipe = personalRecipesUI.chooseRecipe(userId, scanner);
+            if (recipe == null) return;
+            String mealType = chooseMealType(scanner);
+            if (mealType == null) return;
+            System.out.print("Number of recipe servings (fractions allowed; 0 to cancel): ");
+            String amount = scanner.nextLine().trim();
+            if ("0".equals(amount)) return;
+            var request = new com.pedropacheco.nutrition.backend.dailyLog.dto.AddRecipeMealItemRequestDTO(
+                    recipe.recipeId(), mealType, new BigDecimal(amount));
+            var response = dailyLogService.addRecipeMealItem(userId, request);
+            System.out.println("[SUCCESS] Recipe added to " + mealType + ".");
+            printDailyLog(response);
+        } catch (RuntimeException exception) {
+            System.out.println("[ERROR] Could not log recipe: " + exception.getMessage());
         }
     }
 

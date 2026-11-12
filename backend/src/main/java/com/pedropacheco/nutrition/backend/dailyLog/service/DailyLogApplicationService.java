@@ -1,5 +1,6 @@
 package com.pedropacheco.nutrition.backend.dailyLog.service;
 
+import com.pedropacheco.nutrition.backend.customRecipe.service.CustomRecipeService;
 import com.pedropacheco.nutrition.backend.dailyLog.domain.DailyGoalSnapshot;
 import com.pedropacheco.nutrition.backend.dailyLog.domain.DailyLog;
 import com.pedropacheco.nutrition.backend.dailyLog.domain.DailyNutritionSummary;
@@ -29,6 +30,8 @@ public class DailyLogApplicationService {
     private final FoodCatalogQueryService foodCatalogQueryService;
     private final DailyLogFactory dailyLogFactory;
     private final MealItemFactory mealItemFactory;
+    private final CustomRecipeService recipes;
+    private final com.pedropacheco.nutrition.backend.dailyLog.dto.RecipeFoodSnapshotMapper recipeSnapshotMapper;
 
     public DailyLogApplicationService(DailyLogRepository dailyLogRepository,
                                       UserProfileRepository profileRepository,
@@ -37,7 +40,9 @@ public class DailyLogApplicationService {
                                       Clock clock,
                                       FoodCatalogQueryService foodCatalogQueryService,
                                       DailyLogFactory dailyLogFactory,
-                                      MealItemFactory mealItemFactory) {
+                                      MealItemFactory mealItemFactory,
+                                      CustomRecipeService recipes,
+                                      com.pedropacheco.nutrition.backend.dailyLog.dto.RecipeFoodSnapshotMapper recipeSnapshotMapper) {
         this.dailyLogRepository = dailyLogRepository;
         this.profileRepository = profileRepository;
         this.mapper = mapper;
@@ -46,6 +51,8 @@ public class DailyLogApplicationService {
         this.foodCatalogQueryService = foodCatalogQueryService;
         this.dailyLogFactory = dailyLogFactory;
         this.mealItemFactory = mealItemFactory;
+        this.recipes = recipes;
+        this.recipeSnapshotMapper = recipeSnapshotMapper;
     }
 
     @Transactional(readOnly = true)
@@ -71,9 +78,23 @@ public class DailyLogApplicationService {
     @Transactional
     public DailyLogResponseDTO addMealItem(String authenticatedUserId, AddMealItemRequestDTO request) {
 
+        var foodDetails = foodCatalogQueryService.getFoodDetails(request.foodId());
+        MealItem item = mealItemFactory.create(foodDetails, request.quantity(), request.quantityUnit());
+        return addResolvedItem(authenticatedUserId, request.mealType(), item);
+    }
+
+    @Transactional
+    public DailyLogResponseDTO addRecipeMealItem(String authenticatedUserId,
+            com.pedropacheco.nutrition.backend.dailyLog.dto.AddRecipeMealItemRequestDTO request) {
+        var recipe = recipes.getRecipe(authenticatedUserId, request.recipeId());
+        var item = mealItemFactory.create(recipeSnapshotMapper.toFoodSnapshot(recipe), request.quantity(),
+                com.pedropacheco.nutrition.backend.dailyLog.domain.PortionQuantity.Unit.SERVING);
+        return addResolvedItem(authenticatedUserId, request.mealType(), item);
+    }
+
+    private DailyLogResponseDTO addResolvedItem(String authenticatedUserId, String requestedMealType, MealItem item) {
         UserId userId = new UserId(authenticatedUserId);
         LocalDate today = LocalDate.now(clock);
-        var foodDetails = foodCatalogQueryService.getFoodDetails(request.foodId());
         DailyLog log = dailyLogRepository.findByUserIdAndDate(userId.getValue(), today).orElseGet(() -> {
             var profile = profileRepository.findByUserId(userId)
                     .orElseThrow(NutritionalProfileRequiredException::new);
@@ -81,8 +102,7 @@ public class DailyLogApplicationService {
                     DailyGoalSnapshot.from(profile.getNutritionalGoal()));
         });
 
-        MealItem item = mealItemFactory.create(foodDetails, request.quantity(), request.quantityUnit());
-        MealType mealType = new MealType(request.mealType());
+        MealType mealType = new MealType(requestedMealType);
         // Validate that the catalog's serving and nutrient basis can be scaled before mutating the aggregate.
         nutrientScalingService.calculateContribution(item.getFoodSnapshot(), item.getPortionQuantity());
         log.addMealItem(mealType, item);

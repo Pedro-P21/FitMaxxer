@@ -58,19 +58,24 @@ loop Each resolved ingredient
     deactivate Ingredient
 end
 
-Factory -> Factory : sum scaled ingredient calories and macros
-Factory -> Macros ** : create(totalCalories, totalProtein, totalCarbohydrates, totalFat)
-activate Macros
-Macros --> Factory : RecipeMacros
-deactivate Macros
-Factory -> Recipe ** : create(userId, name, ingredients, numberOfServings, recipeMacros)
+Factory -> Recipe ** : create(userId, name, numberOfServings, ingredients)
 activate Recipe
+Recipe -> Recipe : sum scaled ingredient calories and macros
+Recipe -> Macros ** : create(totalCalories, totalProtein, totalCarbohydrates, totalFat)
+activate Macros
+Macros --> Recipe : RecipeMacros
+deactivate Macros
 Recipe --> Factory : CustomRecipe
 deactivate Recipe
 Factory --> Service : CustomRecipe
 deactivate Factory
 
-Service -> Repo : save(recipe)
+note right of Service
+    Ingredient resolution and aggregate construction
+    complete before the write transaction begins.
+    Save and response mapping run in one transaction.
+end note
+Service -> Repo : saveAndFlush(recipe)
 activate Repo
 Repo --> Service : saved CustomRecipe
 deactivate Repo

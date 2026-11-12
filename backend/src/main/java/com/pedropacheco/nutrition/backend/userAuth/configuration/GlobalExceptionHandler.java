@@ -14,6 +14,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(com.pedropacheco.nutrition.backend.customRecipe.service.RecipeNotFoundException.class)
+    public ResponseEntity<String> handleRecipeNotFound(RuntimeException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+
     @ExceptionHandler(FoodNotFoundException.class)
     public ResponseEntity<String> handleFoodNotFound(FoodNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());

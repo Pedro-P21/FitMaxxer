@@ -32,6 +32,9 @@ class FoodCatalogCacheIntegrationTest {
     @Autowired
     private FoodCatalogQueryService queryService;
 
+    @Autowired
+    private com.pedropacheco.nutrition.backend.cli.CustomRecipeUI recipeUI;
+
     @MockitoBean
     private FoodCatalogProvider provider;
 
@@ -147,6 +150,38 @@ class FoodCatalogCacheIntegrationTest {
 
         assertEquals("Oats", queryService.getFoodDetails("openfoodfacts:12345678").name());
         verify(provider).search("oats");
+        verify(provider).search("12345678");
+        verifyNoMoreInteractions(provider);
+    }
+
+    @Test
+    void recipeDraftRepeatedSelectionAndLaterDetailResolutionPreventASecondProviderQuery() {
+        when(provider.search("oats")).thenReturn(List.of(oats()));
+        var input = new java.util.Scanner("Bowl\n3\n1\noats\n1\n2\n150\n1\n OATS \n1\n1\n0.5\n2\n");
+
+        var draft = recipeUI.buildDraft(input).orElseThrow();
+        assertEquals("Bowl", draft.getName().getValue());
+        assertEquals(2, draft.getSelections().size());
+        assertEquals("openfoodfacts:12345678", draft.getSelections().get(0).foodId());
+        assertEquals(0, new BigDecimal("150").compareTo(draft.getSelections().get(0).quantity()));
+
+        // No query result is available now: only the food-details cache can avoid another provider call.
+        cacheManager.getCache("foodSearchCache").clear();
+        for (var selected : draft.getSelections()) {
+            assertEquals("Oats", queryService.getFoodDetails(selected.foodId()).name());
+        }
+        verify(provider, times(1)).search("oats");
+        verifyNoMoreInteractions(provider);
+    }
+
+    @Test
+    void barcodeRecipeSelectionAlsoSeedsDetailsWithoutAnotherProviderQuery() {
+        when(provider.search("12345678")).thenReturn(List.of(oats()));
+        var input = new java.util.Scanner("Bowl\n1\n1\n12345678\n1\n1\n1\n2\n");
+
+        var draft = recipeUI.buildDraft(input).orElseThrow();
+        cacheManager.getCache("foodSearchCache").clear();
+        assertEquals("Oats", queryService.getFoodDetails(draft.getSelections().get(0).foodId()).name());
         verify(provider).search("12345678");
         verifyNoMoreInteractions(provider);
     }

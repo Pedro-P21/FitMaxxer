@@ -31,4 +31,10 @@ public class DailyLogController {
                                                             @RequestBody AddMealItemRequestDTO request) {
         return ResponseEntity.ok(dailyLogApplicationService.addMealItem(authenticatedUser.getSubject(), request));
     }
+
+    @PostMapping("/today/recipe-items")
+    public ResponseEntity<DailyLogResponseDTO> addRecipeMealItem(@AuthenticationPrincipal Jwt authenticatedUser,
+            @RequestBody com.pedropacheco.nutrition.backend.dailyLog.dto.AddRecipeMealItemRequestDTO request) {
+        return ResponseEntity.ok(dailyLogApplicationService.addRecipeMealItem(authenticatedUser.getSubject(), request));
+    }
 }

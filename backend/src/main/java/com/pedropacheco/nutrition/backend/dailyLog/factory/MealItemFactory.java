@@ -20,6 +20,10 @@ public class MealItemFactory {
         FoodSnapshot snapshot = new FoodSnapshot(food.name(), food.brand(), food.barcode(),
                 food.caloriesKcal(), food.proteinGrams(), food.carbohydrateGrams(), food.fatGrams(),
                 basis, food.servingQuantity(), food.servingUnit());
-        return new MealItem(snapshot, new PortionQuantity(quantity, quantityUnit));
+        return create(snapshot, quantity, quantityUnit);
+    }
+
+    public MealItem create(FoodSnapshot snapshot, BigDecimal quantity, PortionQuantity.Unit unit) {
+        return new MealItem(snapshot, new PortionQuantity(quantity, unit));
     }
 }

@@ -1,5 +1,6 @@
 package com.pedropacheco.nutrition.backend.dailyLog.service;
 
+import com.pedropacheco.nutrition.backend.customRecipe.service.CustomRecipeService;
 import com.pedropacheco.nutrition.backend.dailyLog.domain.DailyLog;
 import com.pedropacheco.nutrition.backend.dailyLog.dto.AddMealItemRequestDTO;
 import com.pedropacheco.nutrition.backend.dailyLog.dto.DailyLogMapper;
@@ -28,7 +29,9 @@ class DailyLogApplicationServiceTest {
     private final DailyLogApplicationService service = new DailyLogApplicationService(dailyLogRepository,
             profileRepository, new DailyLogMapper(new NutrientScalingService()), new NutrientScalingService(),
             Clock.fixed(Instant.parse("2026-11-10T04:00:00Z"), ZoneOffset.UTC), foodCatalogQueryService,
-            new DailyLogFactory(), new MealItemFactory());
+            new DailyLogFactory(), new MealItemFactory(),
+            mock(CustomRecipeService.class),
+            new com.pedropacheco.nutrition.backend.dailyLog.dto.RecipeFoodSnapshotMapper());
 
     @Test
     void returnsEmptyMealsAndZeroConsumedValuesUsingCurrentProfileTargets() {

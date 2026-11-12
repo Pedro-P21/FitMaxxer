@@ -14,20 +14,24 @@ public class FitMaxxerMainMenu {
     private static final int EDIT_NUTRITIONAL_PROFILE_OPTION = 4;
     private static final int SEARCH_FOOD_OPTION = 5;
     private static final int DAILY_HISTORY_OPTION = 6;
+    private static final int RECIPE_DRAFT_OPTION = 7;
 
     private final UpdateUserNutritionalProfileUI updateUserNutritionalProfileUI;
     private final FoodCatalogSearchUI foodCatalogSearchUI;
     private final DailyLogUI dailyLogUI;
     private final DailyHistoryUI dailyHistoryUI;
+    private final CustomRecipeUI customRecipeUI;
 
     public FitMaxxerMainMenu(UpdateUserNutritionalProfileUI updateUserNutritionalProfileUI,
                              FoodCatalogSearchUI foodCatalogSearchUI,
                              DailyLogUI dailyLogUI,
-                             DailyHistoryUI dailyHistoryUI) {
+                             DailyHistoryUI dailyHistoryUI,
+                             CustomRecipeUI customRecipeUI) {
         this.updateUserNutritionalProfileUI = updateUserNutritionalProfileUI;
         this.foodCatalogSearchUI = foodCatalogSearchUI;
         this.dailyLogUI = dailyLogUI;
         this.dailyHistoryUI = dailyHistoryUI;
+        this.customRecipeUI = customRecipeUI;
     }
 
     public void show(String userId, Scanner scanner) {
@@ -46,6 +50,7 @@ public class FitMaxxerMainMenu {
             System.out.println(EDIT_NUTRITIONAL_PROFILE_OPTION + ". Edit Nutritional Profile");
             System.out.println(SEARCH_FOOD_OPTION + ". Search Food Catalog");
             System.out.println(DAILY_HISTORY_OPTION + ". Daily History");
+            System.out.println(RECIPE_DRAFT_OPTION + ". Build Custom Recipe");
             System.out.println(EXIT_OPTION + ". Logout & Exit");
             System.out.print("Choice: " );
 
@@ -65,10 +70,13 @@ public class FitMaxxerMainMenu {
                     updateUserNutritionalProfileUI.show(userId, scanner);
                     break;
                 case "5":
-                    foodCatalogSearchUI.show(scanner);
+                    foodCatalogSearchUI.show(userId, scanner);
                     break;
                 case "6":
                     dailyHistoryUI.show(userId, scanner);
+                    break;
+                case "7":
+                    customRecipeUI.show(userId, scanner);
                     break;
                 case "0":
                     System.out.println("[INFO] Logging out. Returning to authentication menu...");

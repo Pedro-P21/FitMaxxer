@@ -61,7 +61,7 @@ As a User, I want to be able to create my own custom foods, ingredients, and rec
 
 ![US006 SSD](US006_SSD.svg)
 
-[PlantUML source](US006_SSD.puml)
+[PlantUML source](puml/US006_SSD.puml)
 
 ##### 1.7. Assumptions and Decisions
 - A recipe represents one complete preparation, not one meal occurrence. Its nutrition is the sum of the selected ingredient contributions; yield determines the fraction represented by one serving.
@@ -111,7 +111,9 @@ As a User, I want to be able to create my own custom foods, ingredients, and rec
 
 ### 3.3. Sequence Diagram (SD)
 
-![US006 SD](US006_SD_2.svg)
+![US006_SD_1.svg](US006_SD_1.svg)
+![US006_SD_2.svg](US006_SD_2.svg)
+![US006_SD_3.svg](US006_SD_3.svg)
 
 The draft follows the catalog-ingredient happy path: create and persist a recipe, browse saved recipes, and hand off logging to US004. `CustomRecipeMapper` and `CustomRecipeResponseDTO` are proposed response-mapping components, following the other user stories.
 
@@ -190,3 +192,55 @@ Lunch contribution:
 Persist DailyLog and return updated daily summary
 ```
 All subsequent recipe reads use the saved recipe definition; all subsequent log/history reads use the saved meal-item snapshot.
+
+
+### 5.4. Phase 1 Implementation Status
+
+Implemented the recipe domain foundation and the local draft-building flow from `US006_SD_1.puml`:
+
+- `CustomRecipe`, `RecipeId`, `RecipeName`, singular `RecipeIngredient`, `IngredientSnapshot`, `IngredientQuantity`, and owned `RecipeMacros` are implemented under `customRecipe/domain`. `numberOfServings` is a root attribute. The ingredient and snapshot types remain independent of DailyLog.
+- The root computes whole-recipe totals from ingredient snapshots and quantities; callers cannot supply authoritative totals. Per-serving nutrition divides the stored totals by `numberOfServings`. Inputs and persisted totals use decimal columns with precision 30 and scale 10; intermediate ingredient contributions are summed before rounding totals.
+- JPA mappings cascade ingredients and macros with the root and preserve ingredient order. `CustomRecipe` owns the unique `recipe_macros_id` foreign key. Persistence is exercised directly in an isolated test database; the save endpoint and repository application flow belong to phase 2.
+- Main-menu option **7 — Build Recipe Draft** opens `CustomRecipeUI`, reuses US003 selection, collects units/quantities, and displays an unsaved draft. `RecipeDraft` is local to that invocation. Reviewing returns the draft to its caller; returning to the menu discards it until the phase 2 submission flow is connected.
+- Draft submission selections contain food identifiers and quantities, not authoritative catalog nutrition. The selected response supports preview validation only; saving will resolve trusted details through `FoodCatalogQueryService`.
+- Cache integration tests run the draft flow with actual Spring/Caffeine caches and count provider calls. Repeating the same keyword selection and resolving selected IDs requires only the initial provider query. Existing cache tests also cover repopulation, eviction, expiration, fallback, and provider recovery.
+
+Recipe submission and persistence are completed in phase 2 below. Browsing/logging (part 3) and manual custom-food creation remain for subsequent phases.
+
+
+### 5.5. Phase 2 Implementation Status
+
+- `CustomRecipeController` exposes authenticated `POST /api/recipes`. The JWT subject supplies the owner; requests contain `name`, `numberOfServings`, and `ingredients` entries with `foodId`, `quantity`, and `quantityUnit`. No client nutrition or owner field is used.
+- `CustomRecipeApplicationService` resolves each selected food through the existing cache-first `FoodCatalogQueryService`. `CustomRecipeFactory` maps trusted catalog definitions to recipe-owned snapshots/quantities and constructs the root, which calculates its own `RecipeMacros`.
+- Catalog lookups and domain validation occur before a short `TransactionTemplate` write transaction. `CustomRecipeRepository.saveAndFlush()` persists the root, ordered ingredient snapshots, and macros atomically. `CustomRecipeMapper` maps the response inside the same transaction.
+- Creation returns `201 Created`, a `Location: /api/recipes/{recipeId}` header, and `CustomRecipeResponseDTO` with ingredient snapshots, serving count, `totalNutrition`, and `perServingNutrition`. Each nutrient object contains calories in kcal and protein/carbohydrate/fat in grams. The detail GET endpoint belongs to phase 3.
+- Main-menu option **7 — Create Recipe** now lets the signed-in user review and confirm saving, displays saved calories/macros, and retains the local draft for retry after a failed save. It uses the same application service as the HTTP endpoint.
+- API integration tests cover persistence/reload, stored snapshots after cache eviction, trusted ownership/nutrition, malformed requests, unavailable/missing ingredients, incompatible units, and actual database rollback of all aggregate tables. Cache tests confirm creation from search selections does not trigger a second provider query; cold-cache fallback runs outside the write transaction and repeated food IDs reuse details.
+
+Example request:
+
+```json
+{
+  "name": "Homemade bowl",
+  "numberOfServings": 3,
+  "ingredients": [
+    {"foodId": "openfoodfacts:12345678", "quantity": 150, "quantityUnit": "GRAM"},
+    {"foodId": "openfoodfacts:87654321", "quantity": 3, "quantityUnit": "SERVING"}
+  ]
+}
+```
+
+Phase 2 handles catalog ingredients, matching SD part 2. Personal custom foods and recipe browsing/logging remain for subsequent work.
+
+
+### 5.6. Phase 3 Implementation Status
+
+- US003's CLI browsing screen now asks **Open food catalog** or **Personal recipes** before querying. The existing keyword/barcode flow handles public foods; the shared `PersonalRecipesUI` browses owner-scoped recipe pages and displays a selected recipe's ingredients and whole-recipe/per-serving nutrition. Recipe building still selects catalog ingredients directly, so nested recipes are not introduced.
+- US004's **Add food** flow offers the same source choice. Choosing personal recipes uses that picker, then asks for a supported meal type and positive recipe-serving count, including fractions. The public-food path retains its existing units and request contract.
+- `GET /api/recipes?page=0&size=20` returns `items`, `page`, `size`, `totalElements`, and `totalPages`; each item contains a recipe ID/name, serving count, and whole/per-serving nutrition. Pages are sorted by name then ID. Size is bounded to 1–100; invalid pagination is rejected. `GET /api/recipes/{recipeId}` returns full saved details. Both queries filter by the authenticated owner and require no food-catalog access.
+- `POST /api/daily-log/today/recipe-items` accepts `{recipeId, mealType, quantity}`. Quantity always means recipe servings and matches DailyLog's existing storage precision (up to 8 integer and 4 decimal digits). Foreign-owned and missing recipes produce the same `404` response.
+- `RecipeFoodSnapshotMapper` copies persisted per-serving nutrition into a new DailyLog `FoodSnapshot` with `PER_SERVING` basis and a `1 serving` definition. DailyLog shares its existing addition/goal-snapshot/save logic for public foods and recipes. Each recipe addition creates one meal item, with no live recipe association.
+- DailyLog food snapshot decimal columns explicitly retain precision 30 / scale 10 so fractional per-serving calories and macros survive persistence without being rounded to two decimal places. Later recipe changes or deletion do not rewrite logged snapshots or history.
+- Tests cover owner isolation, authentication, pagination, empty lists, both CLI source choices, fractional servings, first-log targets, subsequent additions, missing profiles, snapshot precision/history independence, and database rollback for both new and existing logs. Personal browsing/logging makes no provider calls.
+
+Recipe creation, browsing, and logging are implemented. Manual custom-food creation remains separate subsequent work.
