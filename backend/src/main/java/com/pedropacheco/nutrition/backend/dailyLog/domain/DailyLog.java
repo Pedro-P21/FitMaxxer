@@ -1,5 +1,6 @@
 package com.pedropacheco.nutrition.backend.dailyLog.domain;
 
+import com.pedropacheco.nutrition.backend.dailyLog.Exception.LoggedItemNotFoundException;
 import com.pedropacheco.nutrition.backend.dailyLog.service.NutrientScalingService;
 import com.pedropacheco.nutrition.backend.userAuth.domain.UserId;
 import jakarta.persistence.*;
@@ -58,6 +59,13 @@ public class DailyLog {
             meals.add(targetMeal);
         }
         targetMeal.addItem(item);
+    }
+
+    public MealItem getItem(Long itemId) {
+        if (itemId == null || itemId <= 0) throw new IllegalArgumentException("Item ID must be positive.");
+        return meals.stream().flatMap(meal -> meal.getItems().stream())
+                .filter(item -> itemId.equals(item.getId())).findFirst()
+                .orElseThrow(LoggedItemNotFoundException::new);
     }
 
     public DailyNutritionSummary calculateNutritionSummary(NutrientScalingService scalingService) {

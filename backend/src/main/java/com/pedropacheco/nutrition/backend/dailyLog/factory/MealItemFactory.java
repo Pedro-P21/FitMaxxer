@@ -10,6 +10,21 @@ import java.math.BigDecimal;
 
 @Component
 public class MealItemFactory {
+    public void changeItemQuantity(MealItem item, BigDecimal newAmount) {
+        // Enforce the persisted decimal(12,4) bounds before replacing the value object.
+        if (newAmount == null || newAmount.signum() <= 0)
+            throw new IllegalArgumentException("Quantity must be positive.");
+        newAmount = newAmount.stripTrailingZeros();
+        if (newAmount.scale() > 4 || newAmount.precision() - newAmount.scale() > 8)
+            throw new IllegalArgumentException("Quantity supports up to 8 integer and 4 decimal digits.");
+        PortionQuantity previous = item.getPortionQuantity();
+        PortionQuantity replacement = previous.getUnit() == PortionQuantity.Unit.NAMED
+                ? PortionQuantity.named(previous.getLabel(), newAmount,
+                        previous.getEquivalentAmount(), previous.getEquivalentUnit())
+                : new PortionQuantity(newAmount, previous.getUnit());
+        item.replacePortionQuantity(replacement);
+    }
+
     public MealItem create(FoodCatalogDetailsDTO food, BigDecimal quantity, PortionQuantity.Unit quantityUnit) {
         NutrientComposition.Basis basis;
         try {

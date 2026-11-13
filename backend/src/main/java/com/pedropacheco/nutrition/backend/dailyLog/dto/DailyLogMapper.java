@@ -42,7 +42,7 @@ public class DailyLogMapper {
 
     private MealItemResponseDTO toItemDTO(MealItem item) {
         FoodSnapshot food = item.getFoodSnapshot();
-        return new MealItemResponseDTO(food.getFoodName(), food.getBrand(), food.getBarcode(),
+        return new MealItemResponseDTO(item.getId(), food.getFoodName(), food.getBrand(), food.getBarcode(),
                 item.getPortionQuantity().getAmount(), item.getPortionQuantity().getUnit().name(),
                 item.getPortionQuantity().getLabel(), food.getServingSizeQuantity(), food.getServingSizeUnit(),
                 food.getCaloriesKcal(), food.getProteinGrams(), food.getCarbohydrateGrams(), food.getFatGrams(),

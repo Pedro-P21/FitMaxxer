@@ -30,6 +30,12 @@ public class MealItem {
         if (this.meal != null) throw new IllegalStateException("A meal item can only belong to one meal.");
         this.meal = Objects.requireNonNull(meal);
     }
+    public Long getId() { return id; }
+
+    public void replacePortionQuantity(PortionQuantity replacement) {
+        this.portionQuantity = Objects.requireNonNull(replacement, "Portion quantity cannot be null.");
+    }
+
     public FoodSnapshot getFoodSnapshot() { return foodSnapshot; }
     public PortionQuantity getPortionQuantity() { return portionQuantity; }
 }

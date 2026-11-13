@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Scanner;
 
-/** Console workflow for viewing today's log and adding catalog foods without HTTP. */
+/** Console workflow for viewing and updating today's logged intake without HTTP. */
 @Component
 public class DailyLogUI {
     private final DailyLogApplicationService dailyLogService;
@@ -39,12 +39,17 @@ public class DailyLogUI {
             }
 
             System.out.println("\n1. Add food");
+            System.out.println("2. Change a logged quantity");
             System.out.println("0. Return to main menu");
             System.out.print("Choice: ");
             String choice = scanner.nextLine().trim();
             if ("0".equals(choice)) return;
+            if ("2".equals(choice)) {
+                changeLoggedQuantity(userId, scanner, response);
+                continue;
+            }
             if (!"1".equals(choice)) {
-                System.out.println("[INFO] Select 1 to add food or 0 to return.");
+                System.out.println("[INFO] Select 1 to add food, 2 to change a quantity, or 0 to return.");
                 continue;
             }
 
@@ -74,6 +79,40 @@ public class DailyLogUI {
             } catch (RuntimeException exception) {
                 System.out.println("[ERROR] Could not add food: " + exception.getMessage());
             }
+        }
+    }
+
+    private void changeLoggedQuantity(String userId, Scanner scanner, DailyLogResponseDTO log) {
+        var items = log.meals().stream().flatMap(meal -> meal.items().stream()).toList();
+        if (items.isEmpty()) {
+            System.out.println("[INFO] No items logged today.");
+            return;
+        }
+        for (int index = 0; index < items.size(); index++) {
+            var item = items.get(index);
+            System.out.printf("%d. %s: %s %s%n", index + 1, item.foodName(),
+                    item.quantity().stripTrailingZeros().toPlainString(), item.quantityUnit());
+        }
+        try {
+            System.out.print("Select item number (0 to cancel): ");
+            String selection = scanner.nextLine().trim();
+            if ("0".equals(selection)) return;
+            int index = Integer.parseInt(selection) - 1;
+            if (index < 0 || index >= items.size()) {
+                System.out.println("[INFO] Select a listed item number.");
+                return;
+            }
+            var item = items.get(index);
+            System.out.printf("New quantity in %s (0 to cancel): ", item.quantityUnit());
+            String amount = scanner.nextLine().trim();
+            if ("0".equals(amount)) return;
+            var request = new com.pedropacheco.nutrition.backend.dailyLog.dto.ChangeMealItemQuantityRequestDTO(
+                    new BigDecimal(amount));
+            var updated = dailyLogService.changeItemQuantity(userId, item.itemId(), request);
+            System.out.println("[SUCCESS] Logged quantity updated.");
+            printDailyLog(updated);
+        } catch (RuntimeException exception) {
+            System.out.println("[ERROR] Could not change quantity: " + exception.getMessage());
         }
     }
 

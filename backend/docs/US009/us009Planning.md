@@ -91,26 +91,32 @@ The final deletion ends the aggregate's lifecycle, including its owned meal reco
 
 ### 3.3. Sequence Diagram (SD)
 
-The following drafts show successful operations only. API paths and new domain methods are proposed, not yet implemented. Quantity corrections create a new immutable `PortionQuantity` and replace the item's previous value-object reference. Moves retain the item and its value objects; deletions remove the selected entity through the aggregate root.
+The following diagrams show successful operations only. Quantity corrections use `MealItemFactory` to create a new immutable `PortionQuantity` and replace the item's previous value-object reference. The quantity-change flow is implemented; move and deletion APIs and domain methods remain proposals awaiting review.
 
 **Changing a logged quantity**
 
 ![US009 SD - Changing a logged quantity](US009_SD_1.svg)
 
-[PlantUML source](puml/US009_SD_1.puml)
 
 **Moving a logged item**
 
 ![US009 SD - Moving a logged item](US009_SD_2.svg)
 
-[PlantUML source](puml/US009_SD_2.puml)
 
 **Deleting a logged item**
 
 ![US009 SD - Deleting a logged item](US009_SD_3.svg)
 
-[PlantUML source](puml/US009_SD_3.puml)
-
 ## 4. Tests
 
 ## 5. Implementation
+
+### 5.1. Changing a Logged Quantity
+
+- `PATCH /api/daily-log/today/items/{itemId}/quantity` accepts `{ "quantity": 2.5 }` and returns the updated `DailyLogResponseDTO`. Logged-item responses include `itemId` so duplicate foods or recipes can be selected independently.
+- `DailyLogApplicationService.changeItemQuantity` loads the authenticated user's log for today using the configured clock, then asks `DailyLog.getItem` to locate the entry within that aggregate. Missing, foreign, and historical items return `404` without revealing another user's data.
+- `MealItemFactory.changeItemQuantity` receives the located entity, creates a replacement `PortionQuantity` with the existing unit and metadata, and asks the entity to replace its reference. The previous value object, item identity, food snapshot, and log target snapshot remain unchanged.
+- Quantities must be positive and fit existing `decimal(12,4)` storage. Invalid amounts return `400`; unauthenticated requests return `401`.
+- Nutrition is recalculated from stored snapshots, and the log is saved in one transaction. Catalog and recipe-definition lookups are not required.
+- The CLI's daily-log menu offers **Change a logged quantity**, with individual entry selection and input in the recorded unit.
+- Moving and deleting entries are not implemented in this phase.

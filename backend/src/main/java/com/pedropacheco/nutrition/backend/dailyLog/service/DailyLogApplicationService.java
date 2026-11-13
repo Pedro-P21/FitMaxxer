@@ -1,5 +1,7 @@
 package com.pedropacheco.nutrition.backend.dailyLog.service;
 
+import com.pedropacheco.nutrition.backend.dailyLog.Exception.LoggedItemNotFoundException;
+import com.pedropacheco.nutrition.backend.dailyLog.dto.ChangeMealItemQuantityRequestDTO;
 import com.pedropacheco.nutrition.backend.customRecipe.service.CustomRecipeService;
 import com.pedropacheco.nutrition.backend.dailyLog.domain.DailyGoalSnapshot;
 import com.pedropacheco.nutrition.backend.dailyLog.domain.DailyLog;
@@ -73,6 +75,19 @@ public class DailyLogApplicationService {
                 .orElseThrow(NutritionalProfileRequiredException::new);
         DailyGoalSnapshot goalSnapshot = DailyGoalSnapshot.from(profile.getNutritionalGoal());
         return mapper.toEmptyResponseDTO(today, DailyNutritionSummary.empty(goalSnapshot));
+    }
+
+    @Transactional
+    public DailyLogResponseDTO changeItemQuantity(String authenticatedUserId, Long itemId,
+            ChangeMealItemQuantityRequestDTO request) {
+        UserId userId = new UserId(authenticatedUserId);
+        LocalDate today = LocalDate.now(clock);
+        DailyLog log = dailyLogRepository.findByUserIdAndDate(userId.getValue(), today)
+                .orElseThrow(LoggedItemNotFoundException::new);
+        MealItem item = log.getItem(itemId);
+        mealItemFactory.changeItemQuantity(item, request.quantity());
+        DailyNutritionSummary summary = log.calculateNutritionSummary(nutrientScalingService);
+        return mapper.toResponseDTO(dailyLogRepository.save(log), summary);
     }
 
     @Transactional
