@@ -1,0 +1,39 @@
+@startuml US009_SSD
+autonumber
+skinparam monochrome true
+skinparam shadowing false
+
+actor User
+participant System
+
+User -> System : Requests today's log
+System --> User : Displays today's items grouped by meal and daily nutrition
+
+group Change a logged quantity
+    User -> System : Selects a logged item to change its quantity
+    System --> User : Asks for the new quantity in the recorded unit
+    User -> System : Provides a positive quantity
+    System --> User : Confirms the quantity change and displays updated meal and daily nutrition
+end
+
+group Move a logged item
+    User -> System : Selects a logged item to move
+    System --> User : Displays supported destination meals
+    User -> System : Selects the destination meal
+    System --> User : Confirms the move and displays updated meal groupings and nutrition
+end
+
+group Delete a logged item
+    User -> System : Selects a logged item and requests its deletion
+    System --> User : Confirms the deletion and displays updated meals and daily nutrition
+end
+
+group Remove the remaining items individually
+    loop For each remaining logged item
+        User -> System : Selects a logged item and requests its deletion
+        System --> User : Confirms the deletion and displays the updated daily view
+    end
+    System --> User : Displays an empty daily view after the final item is removed
+end
+
+@enduml

@@ -1,0 +1,54 @@
+@startuml US009_SD_1
+title Changing a logged quantity
+autonumber
+skinparam monochrome true
+skinparam shadowing false
+
+actor User
+participant Frontend as UI
+participant ":JWT Authentication Filter" as Auth
+participant ":DailyLogController" as Ctrl
+participant ":DailyLogApplicationService" as Svc
+participant ":DailyLogRepository" as Repo
+participant ":DailyLog" as Log
+participant ":Meal" as Meal
+participant ":MealItemFactory" as Factory
+participant ":MealItem" as Item
+participant ":NutrientScalingService" as Scaling
+participant ":DailyLogMapper" as Mapper
+
+
+User -> UI : selects a logged item and enters a new positive quantity
+UI -> Auth : PATCH /api/daily-log/today/items/{itemId}/quantity\n{quantity} + bearer token
+Auth -> Ctrl : authenticated userId, itemId, request DTO
+Ctrl -> Svc : changeItemQuantity(userId, itemId, request)
+
+Svc -> Repo : findByUserIdAndDate(userId, today)
+Repo --> Svc : today's owned DailyLog with meals and items
+Svc -> Log : getItem(itemId)
+Log -> Log : locate the selected item within this aggregate
+Log --> Svc : MealItem
+Svc -> Factory: changeItemQuantity(mealItemId,newAmount)
+Factory -> Item: read existing unit and portion
+create participant ":PortionQuantity" as Portion
+Factory -> Portion : new PortionQuantity(newAmount, existing unit/metadata)
+Portion --> Item : validated immutable replacement
+Factory -> Item : replace portionQuantity reference
+Item --> Factory : quantity updated; FoodSnapshot retained
+Factory --> Log : quantity updated
+Log --> Svc : item updated
+Svc -> Log : calculateNutritionSummary(scalingService)
+Log -> Meal : calculateNutrientTotals(scalingService)
+Meal -> Scaling : calculateContribution(snapshot, portion) for each item
+Scaling --> Meal : item nutrient contributions
+Meal --> Log : meal totals
+Log --> Svc : DailyNutritionSummary from intake and stored goals
+Svc -> Repo : save(log)
+Repo --> Svc : saved DailyLog
+Svc -> Mapper : toResponseDTO(savedLog, summary)
+Mapper --> Svc : DailyLogResponseDTO with item identities and meal totals
+Svc --> Ctrl : DailyLogResponseDTO
+Ctrl --> UI : 200 OK + DailyLogResponseDTO
+UI --> User : displays updated meals and daily nutrition
+
+@enduml
