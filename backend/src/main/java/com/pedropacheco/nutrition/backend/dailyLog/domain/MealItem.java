@@ -16,9 +16,8 @@ public class MealItem {
     @AttributeOverride(name = "amount", column = @Column(name = "serving_quantity", nullable = false, precision = 12, scale = 4))
     private PortionQuantity portionQuantity;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "meal_id", nullable = false)
-    private Meal meal;
+    @Transient
+    private boolean claimedForLogging;
 
     protected MealItem() {}
     public MealItem(FoodSnapshot foodSnapshot, PortionQuantity portionQuantity) {
@@ -26,10 +25,12 @@ public class MealItem {
         this.portionQuantity = Objects.requireNonNull(portionQuantity, "Portion quantity cannot be null.");
     }
 
-    void attachTo(Meal meal) {
-        if (this.meal != null) throw new IllegalStateException("A meal item can only belong to one meal.");
-        this.meal = Objects.requireNonNull(meal);
+    void claimForLogging() {
+        if (id != null || claimedForLogging)
+            throw new IllegalStateException("Only a new, unassigned item can be added. Move existing items instead.");
+        claimedForLogging = true;
     }
+
     public Long getId() { return id; }
 
     public void replacePortionQuantity(PortionQuantity replacement) {

@@ -12,10 +12,14 @@ public class MealType {
 
     protected MealType() {}
     public MealType(String value) {
+        this.value = normalizeName(value);
+    }
+
+    public static String normalizeName(String value) {
         if (value == null || !SUPPORTED.contains(value.trim().toUpperCase(Locale.ROOT))) {
             throw new IllegalArgumentException("Meal type must be Breakfast, Lunch, Dinner, or Snacks.");
         }
-        this.value = value.trim().toUpperCase(Locale.ROOT);
+        return value.trim().toUpperCase(Locale.ROOT);
     }
     public String getValue() { return value; }
     public String getDisplayName() { return value.charAt(0) + value.substring(1).toLowerCase(Locale.ROOT); }

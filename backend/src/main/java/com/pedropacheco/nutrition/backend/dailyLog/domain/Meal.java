@@ -21,7 +21,8 @@ public class Meal {
     @JoinColumn(name = "daily_log_id", nullable = false)
     private DailyLog dailyLog;
 
-    @OneToMany(mappedBy = "meal", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(cascade = CascadeType.ALL)
+    @JoinColumn(name = "meal_id", nullable = false)
     @OrderBy("id ASC")
     private List<MealItem> items = new ArrayList<>();
 
@@ -33,9 +34,18 @@ public class Meal {
 
     void addItem(MealItem item) {
         Objects.requireNonNull(item, "Meal item cannot be null.");
-        item.attachTo(this);
+        if (containsItem(item)) throw new IllegalStateException("Item already belongs to this meal.");
         items.add(item);
     }
+    boolean containsItem(MealItem candidate) {
+        return items.stream().anyMatch(item -> item == candidate || candidate.getId() != null
+                && candidate.getId().equals(item.getId()));
+    }
+
+    void removeItem(MealItem item) {
+        if (!items.remove(item)) throw new IllegalStateException("Item does not belong to this meal.");
+    }
+
     public MealType getMealType() { return mealType; }
     public List<MealItem> getItems() { return Collections.unmodifiableList(items); }
 

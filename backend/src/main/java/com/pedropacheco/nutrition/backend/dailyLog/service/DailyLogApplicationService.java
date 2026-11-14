@@ -2,6 +2,7 @@ package com.pedropacheco.nutrition.backend.dailyLog.service;
 
 import com.pedropacheco.nutrition.backend.dailyLog.Exception.LoggedItemNotFoundException;
 import com.pedropacheco.nutrition.backend.dailyLog.dto.ChangeMealItemQuantityRequestDTO;
+import com.pedropacheco.nutrition.backend.dailyLog.dto.MoveMealItemRequestDTO;
 import com.pedropacheco.nutrition.backend.customRecipe.service.CustomRecipeService;
 import com.pedropacheco.nutrition.backend.dailyLog.domain.DailyGoalSnapshot;
 import com.pedropacheco.nutrition.backend.dailyLog.domain.DailyLog;
@@ -88,6 +89,33 @@ public class DailyLogApplicationService {
         mealItemFactory.changeItemQuantity(item, request.quantity());
         DailyNutritionSummary summary = log.calculateNutritionSummary(nutrientScalingService);
         return mapper.toResponseDTO(dailyLogRepository.save(log), summary);
+    }
+
+    @Transactional
+    public DailyLogResponseDTO moveItem(String authenticatedUserId, Long itemId, MoveMealItemRequestDTO request) {
+        DailyLog log = requireTodayLog(authenticatedUserId);
+        log.moveMealItem(itemId, request.destinationMealType());
+        var summary = log.calculateNutritionSummary(nutrientScalingService);
+        return mapper.toResponseDTO(dailyLogRepository.save(log), summary);
+    }
+
+    @Transactional
+    public DailyLogResponseDTO deleteItem(String authenticatedUserId, Long itemId) {
+        DailyLog log = requireTodayLog(authenticatedUserId);
+        MealItem removed = log.removeMealItem(itemId);
+        dailyLogRepository.deleteRemovedItem(removed);
+        if (log.isEmpty()) {
+            dailyLogRepository.delete(log);
+            return getToday(authenticatedUserId);
+        }
+        var summary = log.calculateNutritionSummary(nutrientScalingService);
+        return mapper.toResponseDTO(dailyLogRepository.save(log), summary);
+    }
+
+    private DailyLog requireTodayLog(String authenticatedUserId) {
+        UserId userId = new UserId(authenticatedUserId);
+        return dailyLogRepository.findByUserIdAndDate(userId.getValue(), LocalDate.now(clock))
+                .orElseThrow(LoggedItemNotFoundException::new);
     }
 
     @Transactional

@@ -52,13 +52,43 @@ public class DailyLog {
     public void addMealItem(MealType mealType, MealItem item) {
         Objects.requireNonNull(mealType, "Meal type cannot be null.");
         Objects.requireNonNull(item, "Meal item cannot be null.");
-        Meal targetMeal = "SNACKS".equals(mealType.getValue()) ? null
-                : meals.stream().filter(meal -> meal.getMealType().equals(mealType)).findFirst().orElse(null);
+        item.claimForLogging();
+        Meal targetMeal = findMealByType(mealType.getValue());
         if (targetMeal == null) {
             targetMeal = new Meal(mealType, this);
             meals.add(targetMeal);
         }
         targetMeal.addItem(item);
+    }
+
+    private Meal findMealByType(String destinationTypeName) {
+        String normalized = MealType.normalizeName(destinationTypeName);
+        return meals.stream().filter(meal -> meal.getMealType().getValue().equals(normalized))
+                .findFirst().orElse(null);
+    }
+
+    public void moveMealItem(Long itemId, String destinationTypeName) {
+        MealItem item = getItem(itemId);
+        Meal destination = findMealByType(destinationTypeName);
+        Meal source = meals.stream().filter(meal -> meal.containsItem(item)).findFirst().orElseThrow();
+        if (source == destination) return;
+        if (destination == null) {
+            destination = new Meal(new MealType(destinationTypeName), this);
+            meals.add(destination);
+        }
+        source.removeItem(item);
+        destination.addItem(item);
+    }
+
+    /** Returns the removed entity so persistence can explicitly delete it. */
+    public MealItem removeMealItem(Long itemId) {
+        MealItem item = getItem(itemId);
+        meals.stream().filter(meal -> meal.containsItem(item)).findFirst().orElseThrow().removeItem(item);
+        return item;
+    }
+
+    public boolean isEmpty() {
+        return meals.stream().allMatch(meal -> meal.getItems().isEmpty());
     }
 
     public MealItem getItem(Long itemId) {

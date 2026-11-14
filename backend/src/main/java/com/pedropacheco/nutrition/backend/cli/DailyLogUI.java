@@ -40,6 +40,8 @@ public class DailyLogUI {
 
             System.out.println("\n1. Add food");
             System.out.println("2. Change a logged quantity");
+            System.out.println("3. Move a logged item");
+            System.out.println("4. Delete a logged item");
             System.out.println("0. Return to main menu");
             System.out.print("Choice: ");
             String choice = scanner.nextLine().trim();
@@ -48,8 +50,12 @@ public class DailyLogUI {
                 changeLoggedQuantity(userId, scanner, response);
                 continue;
             }
+            if ("3".equals(choice) || "4".equals(choice)) {
+                moveOrDeleteLoggedItem(userId, scanner, response, "3".equals(choice));
+                continue;
+            }
             if (!"1".equals(choice)) {
-                System.out.println("[INFO] Select 1 to add food, 2 to change a quantity, or 0 to return.");
+                System.out.println("[INFO] Select 1 to add food, 2 to change quantity, 3 to move, 4 to delete, or 0 to return.");
                 continue;
             }
 
@@ -82,27 +88,35 @@ public class DailyLogUI {
         }
     }
 
-    private void changeLoggedQuantity(String userId, Scanner scanner, DailyLogResponseDTO log) {
+    private com.pedropacheco.nutrition.backend.dailyLog.dto.MealItemResponseDTO chooseLoggedItem(
+            Scanner scanner, DailyLogResponseDTO log) {
         var items = log.meals().stream().flatMap(meal -> meal.items().stream()).toList();
         if (items.isEmpty()) {
             System.out.println("[INFO] No items logged today.");
-            return;
+            return null;
         }
-        for (int index = 0; index < items.size(); index++) {
-            var item = items.get(index);
-            System.out.printf("%d. %s: %s %s%n", index + 1, item.foodName(),
-                    item.quantity().stripTrailingZeros().toPlainString(), item.quantityUnit());
-        }
-        try {
-            System.out.print("Select item number (0 to cancel): ");
-            String selection = scanner.nextLine().trim();
-            if ("0".equals(selection)) return;
-            int index = Integer.parseInt(selection) - 1;
-            if (index < 0 || index >= items.size()) {
-                System.out.println("[INFO] Select a listed item number.");
-                return;
+        int number = 1;
+        for (var meal : log.meals()) {
+            for (var item : meal.items()) {
+                System.out.printf("%d. %s — %s: %s %s%n", number++, meal.type(), item.foodName(),
+                        item.quantity().stripTrailingZeros().toPlainString(), item.quantityUnit());
             }
-            var item = items.get(index);
+        }
+        System.out.print("Select item number (0 to cancel): ");
+        String selection = scanner.nextLine().trim();
+        if ("0".equals(selection)) return null;
+        int index = Integer.parseInt(selection) - 1;
+        if (index < 0 || index >= items.size()) {
+            System.out.println("[INFO] Select a listed item number.");
+            return null;
+        }
+        return items.get(index);
+    }
+
+    private void changeLoggedQuantity(String userId, Scanner scanner, DailyLogResponseDTO log) {
+        try {
+            var item = chooseLoggedItem(scanner, log);
+            if (item == null) return;
             System.out.printf("New quantity in %s (0 to cancel): ", item.quantityUnit());
             String amount = scanner.nextLine().trim();
             if ("0".equals(amount)) return;
@@ -113,6 +127,26 @@ public class DailyLogUI {
             printDailyLog(updated);
         } catch (RuntimeException exception) {
             System.out.println("[ERROR] Could not change quantity: " + exception.getMessage());
+        }
+    }
+
+    private void moveOrDeleteLoggedItem(String userId, Scanner scanner, DailyLogResponseDTO log, boolean move) {
+        try {
+            var item = chooseLoggedItem(scanner, log);
+            if (item == null) return;
+            DailyLogResponseDTO updated;
+            if (move) {
+                String destination = chooseMealType(scanner);
+                if (destination == null) return;
+                updated = dailyLogService.moveItem(userId, item.itemId(),
+                        new com.pedropacheco.nutrition.backend.dailyLog.dto.MoveMealItemRequestDTO(destination));
+            } else {
+                updated = dailyLogService.deleteItem(userId, item.itemId());
+            }
+            System.out.println(move ? "[SUCCESS] Logged item moved." : "[SUCCESS] Logged item deleted.");
+            printDailyLog(updated);
+        } catch (RuntimeException exception) {
+            System.out.println("[ERROR] Could not update logged item: " + exception.getMessage());
         }
     }
 

@@ -2,6 +2,8 @@ package com.pedropacheco.nutrition.backend.dailyLog.controller;
 
 import com.pedropacheco.nutrition.backend.dailyLog.dto.ChangeMealItemQuantityRequestDTO;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import com.pedropacheco.nutrition.backend.dailyLog.dto.MoveMealItemRequestDTO;
 import org.springframework.web.bind.annotation.PatchMapping;
 import com.pedropacheco.nutrition.backend.dailyLog.dto.DailyLogResponseDTO;
 import com.pedropacheco.nutrition.backend.dailyLog.dto.AddMealItemRequestDTO;
@@ -29,6 +31,18 @@ public class DailyLogController {
             @PathVariable Long itemId,
             @RequestBody ChangeMealItemQuantityRequestDTO request) {
         return ResponseEntity.ok(dailyLogApplicationService.changeItemQuantity(authenticatedUser.getSubject(), itemId, request));
+    }
+
+    @PatchMapping("/today/items/{itemId}/meal")
+    public ResponseEntity<DailyLogResponseDTO> moveItem(@AuthenticationPrincipal Jwt authenticatedUser,
+            @PathVariable Long itemId, @RequestBody MoveMealItemRequestDTO request) {
+        return ResponseEntity.ok(dailyLogApplicationService.moveItem(authenticatedUser.getSubject(), itemId, request));
+    }
+
+    @DeleteMapping("/today/items/{itemId}")
+    public ResponseEntity<DailyLogResponseDTO> deleteItem(@AuthenticationPrincipal Jwt authenticatedUser,
+            @PathVariable Long itemId) {
+        return ResponseEntity.ok(dailyLogApplicationService.deleteItem(authenticatedUser.getSubject(), itemId));
     }
 
     @GetMapping("/today")

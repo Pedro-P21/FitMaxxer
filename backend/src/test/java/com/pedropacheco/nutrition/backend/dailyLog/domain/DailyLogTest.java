@@ -100,6 +100,25 @@ class DailyLogTest {
         assertThrows(IllegalArgumentException.class, () -> new PortionQuantity("-1"));
     }
 
+    @Test
+    void reusesOneMealForEveryTypeIncludingSnacksAndRejectsDuplicateMembership() {
+        var log = new DailyLog(new UserId("user-1"), LocalDate.of(2026, 11, 14), 1L,
+                new DailyGoalSnapshot(2000, 120, 220, 70));
+        for (String type : new String[]{"Breakfast", "Lunch", "Dinner", "Snacks"}) {
+            var entry = item("Food", "100", "2", "3", "1");
+            log.addMealItem(new MealType(type), entry);
+            log.addMealItem(new MealType(type), item("Food", "100", "2", "3", "1"));
+            assertThrows(IllegalStateException.class, () -> log.addMealItem(new MealType("Snacks"), entry));
+        }
+        var otherLog = new DailyLog(new UserId("user-2"), LocalDate.of(2026, 11, 14), 2L,
+                new DailyGoalSnapshot(2000, 120, 220, 70));
+        assertThrows(IllegalStateException.class, () -> otherLog.addMealItem(new MealType("Dinner"),
+                log.getMeals().getFirst().getItems().getFirst()));
+        assertEquals(4, log.getMeals().size());
+        assertTrue(log.getMeals().stream().allMatch(meal -> meal.getItems().size() == 2));
+        assertThrows(UnsupportedOperationException.class, () -> log.getMeals().getFirst().getItems().clear());
+    }
+
     private MealItem item(String name, String calories, String protein, String carbs, String fat) {
         return new MealItem(new FoodSnapshot(name, null, null,
                 new BigDecimal(calories), new BigDecimal(protein), new BigDecimal(carbs), new BigDecimal(fat),

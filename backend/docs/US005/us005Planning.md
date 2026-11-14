@@ -59,7 +59,7 @@ As a User, I want to see the past history of my daily logs, so that I can review
 - The repository query is bounded to one month and scoped to the authenticated user.
 - Historical values come from the persisted `FoodSnapshot` and `DailyGoalSnapshot`; history does not call US003 or read the user's current nutritional profile.
 - The selected log's consumed totals and remaining values are calculated using that log's recorded foods and target snapshot.
-- All meal types supported by US004, including multiple `Snacks` entries, are retained in the historical display.
+- All meal types supported by US004 are retained in the historical display. Multiple snack items appear in the single Snacks grouping; legacy duplicate groupings remain readable.
 - US005 does not change the daily log persistence model or allow historical log edits.
 
 ## 2. Analysis

@@ -9,7 +9,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
-public interface DailyLogRepository extends JpaRepository<DailyLog, DailyLogId> {
+public interface DailyLogRepository extends JpaRepository<DailyLog, DailyLogId>, DailyLogItemRemoval {
     @Query("select log from DailyLog log where log.userId = :userId and log.date.value = :date")
     Optional<DailyLog> findByUserIdAndDate(@Param("userId") String userId, @Param("date") LocalDate date);
 

@@ -10,12 +10,12 @@ As a User, I want to log foods I eat today and see my calorie and macronutrient 
 - The user can view today's log and its foods grouped under meals.
 - The user can select a food from the catalog, choose a meal type, and log a quantity based on the serving definition supplied by the catalog.
 - The system creates and persists today's `DailyLog` when its first food item is added.
-- The user can organize items under `Breakfast`, `Lunch`, `Dinner`, and `Snacks`; multiple snack entries are allowed.
+- The user can organize items under `Breakfast`, `Lunch`, `Dinner`, and `Snacks`; multiple snack items belong to one Snacks meal grouping.
 - The user can see a daily summary/progress visualization of calories and macronutrients consumed today alongside today's targets and remaining amounts.
 
 **From the glossary and domain analysis:**
 - **DailyLog (Aggregate Root):** The authenticated user's log for the current calendar date. It owns its meals and meal items.
-- **Meal:** A grouping of meal items by a supported meal type; multiple snack entries are permitted.
+- **Meal:** A grouping of meal items by a supported meal type; each type, including Snacks, has one grouping per day.
 - **MealType (Value Object):** One of `Breakfast`, `Lunch`, `Dinner`, or `Snacks`.
 - **MealItem (Entity):** One food consumption recorded in a meal, with its `FoodSnapshot` and a unit-aware `PortionQuantity`.
 - **FoodSnapshot (Value Object):** Immutable, log-time food details owned by a `MealItem`, including name, optional brand/barcode, nutrient values and basis, and catalog serving definition. It has no identity or separate lifecycle.
@@ -30,7 +30,7 @@ As a User, I want to log foods I eat today and see my calorie and macronutrient 
 - **AC4:** The system scales the food's calorie and macronutrient values from the catalog-provided nutrient basis by the logged amount. If the selected unit is incompatible, the user can provide grams or milliliters matching that basis; if required data or an applicable conversion is still missing, the system reports that the food cannot be logged with a calculated nutrition value.
 - **AC5:** The daily summary/progress visualization displays calories, protein, carbohydrates, and fat consumed, today's corresponding targets, and remaining values. Negative remaining values indicate an exceeded target. This is a current-day view, not a multi-day trend graph.
 - **AC6:** Meal items retain their food name, nutrient values/basis, and serving definition as captured when logged. Today's target values are retained in the log so catalog or profile changes do not silently rewrite the day's record.
-- **AC7:** The supported meal types are `Breakfast`, `Lunch`, `Dinner`, and `Snacks`; multiple snack entries are allowed. User-defined meal types are out of scope.
+- **AC7:** The supported meal types are `Breakfast`, `Lunch`, `Dinner`, and `Snacks`; multiple snack items belong to one Snacks meal grouping. User-defined meal types are out of scope.
 - **AC8:** Today's log is accessible only to its authenticated owner.
 - **AC9:** US004 only adds meal items. Editing or removing meals/items is outside this story and reserved for US009.
 
@@ -61,7 +61,7 @@ As a User, I want to log foods I eat today and see my calorie and macronutrient 
 ##### 1.7. Assumptions and Decisions
 - US004 covers viewing today's log and adding items to it. Browsing previous daily logs is US005; longer-term trends are US007; editing or removing meals/items is US009.
 - One `DailyLog` is identified by the authenticated user and today's calendar date. It is created and persisted with the first item and reused for subsequent additions.
-- `Breakfast`, `Lunch`, and `Dinner` are single groupings for today. `Snacks` can contain multiple entries. Custom meal types are deferred.
+- Each type, including `Snacks`, is a single grouping for today and may contain multiple items. Custom meal types are deferred.
 - Portion quantity is a positive amount paired with a unit. Catalog-serving multipliers are the default; explicit grams or milliliters are available when compatible with the food's nutrient basis. Item-count conversions and named portions (for example, “one bowl”) require a food-specific measured equivalent and are deferred to US012.
 - Nutrition calculation uses the serving and nutrient basis supplied by US003. US003 must expose compatible serving/nutrient data; US004 does not invent missing conversions or nutrient values.
 - The request uses a catalog lookup key only to resolve the selected food through US003. The persisted `MealItem` contains a `FoodSnapshot` and `PortionQuantity`; it does not retain `FoodId` or a reference to the `FoodItem` aggregate. An available barcode is copied into the snapshot as descriptive data.
@@ -108,7 +108,7 @@ The `MealItem` has no reference to the `FoodItem` aggregate. US003's catalog loo
 6. **Scale nutrition using the provided basis.** Calculate the item's contribution from its amount and unit together with the serving/nutrient data from US003. Reject unavailable or incompatible data rather than displaying fabricated totals.
 7. **Snapshot and refresh today's targets.** When the first item creates the log, copy the active profile's calorie and macro targets into the log. If those goals are edited during the same date, US002 refreshes today's snapshot; earlier daily logs retain their original targets.
 8. **Derive progress.** Calculate consumed totals from logged items and remaining values as target minus consumed.
-9. **Meal types are fixed.** Support `Breakfast`, `Lunch`, `Dinner`, and repeatable `Snacks`; user-defined types are out of scope.
+9. **Meal types are fixed.** Support `Breakfast`, `Lunch`, `Dinner`, and `Snacks`, each with one grouping per day; user-defined types are out of scope.
 10. **US004 is add-only.** It does not edit or remove meals or meal items. Those operations are reserved for US009.
 
 ### 3.3. Sequence Diagram (SD)
@@ -146,7 +146,7 @@ The `MealItem` has no reference to the `FoodItem` aggregate. US003's catalog loo
 
 1. **Open today's log:** The authenticated user opens the daily view. The application loads today's log by the authenticated user and date; if none exists, it returns an empty view without persisting a log.
 2. **Find a food:** The user searches the catalog using US003 and selects a returned food item. The client submits its catalog lookup key, not trusted nutrient values.
-3. **Choose meal and amount:** The user selects `Breakfast`, `Lunch`, `Dinner`, or a `Snacks` entry and enters a catalog-serving multiplier or an explicit gram/milliliter amount compatible with the food's nutrient basis.
+3. **Choose meal and amount:** The user selects `Breakfast`, `Lunch`, `Dinner`, or `Snacks` and enters a catalog-serving multiplier or an explicit gram/milliliter amount compatible with the food's nutrient basis.
 4. **Load or create and add:** The application loads today's log. If this is the first item, it loads the active profile, snapshots today's targets, and creates the log. It resolves the selected catalog key through US003, creates a `FoodSnapshot` and `MealItem`, and adds it to the selected meal. A later goal edit refreshes the target snapshot for this date through US002.
 5. **Calculate progress:** The domain calculates item nutrients from the recorded amount, its unit, and the catalog nutrient basis. The response returns per-meal and daily totals plus targets and remaining values.
 
@@ -161,7 +161,7 @@ The `MealItem` has no reference to the `FoodItem` aggregate. US003's catalog loo
 | `DailyLogFactory`                            | Creates a new `DailyLog` with user/date identity and the initial target snapshot when today's first item is added.                |
 | `MealItemFactory`                            | Creates a `FoodSnapshot` value object and validated `MealItem` from the US003 DTO and quantity/unit pair.                         |
 | `DailyLog`                                  | Aggregate root that owns the date, meal groupings, target snapshot, added items, and derived totals.                             |
-| `Meal`                                      | Groups meal items by `MealType`; allows multiple `Snacks` entries.                                                               |
+| `Meal`                                      | Groups meal items by `MealType`; keeps one grouping per type, including `Snacks`.                                                               |
 | `MealItem`                                  | Holds `FoodSnapshot`, `PortionQuantity`, and calculated nutrient contribution.                                                   |
 | `FoodSnapshot`                              | Immutable value object with food name, optional brand/barcode, nutrients/basis, and catalog serving definition.                  |
 | `PortionQuantity`                           | Validates a positive amount and records whether it is servings, grams, or milliliters.                                            |
