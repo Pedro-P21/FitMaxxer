@@ -1,0 +1,93 @@
+@startuml US010_SD
+title Copying a historical meal into today's log
+autonumber
+skinparam monochrome true
+skinparam shadowing false
+
+actor User
+participant Frontend as UI
+participant ":JWT Authentication Filter" as Auth
+participant ":DailyLogController" as Ctrl
+participant ":DailyLogApplicationService" as Svc
+participant ":DailyLogRepository" as Repo
+participant "sourceLog:DailyLog" as SourceLog
+participant "sourceMeal:Meal" as SourceMeal
+participant "todayLog:DailyLog" as TodayLog
+participant "destinationMeal:Meal" as DestinationMeal
+participant ":MealItemFactory" as Factory
+participant ":DailyLogMapper" as Mapper
+
+note over User, UI
+  Uses US005 behaviour to access previous logs.
+end note
+User -> UI : selects a nonempty historical meal and today's destination meal type
+UI -> Auth : POST /api/daily-log/today/meal-copies\n{sourceDate, sourceMealType, destinationMealType}\nAuthorization: Bearer <access-token>
+activate Auth
+Auth -> Ctrl : authenticated userId and CopyMealRequestDTO
+activate Ctrl
+deactivate Auth
+Ctrl -> Svc : copyMeal(userId, requestDTO)
+activate Svc
+
+note right of Svc
+  Runs in one transaction.
+  Uses the configured clock to determine today.
+  Validates sourceDate is in the past and within US005's history window.
+end note
+Svc -> Repo : findByUserIdAndDate(userId, sourceDate)
+Repo --> Svc : sourceLog
+Svc -> SourceLog : getMealByType(sourceMealType)
+SourceLog --> Svc : selected nonempty sourceMeal
+Svc -> SourceMeal : getItems()
+SourceMeal --> Svc : recorded source items
+
+Svc -> Repo : findByUserIdAndDate(userId, today)
+Repo --> Svc : existing todayLog
+note over Svc, TodayLog
+  If today's log does not exist, reuse US004's first-log creation
+  behaviour with DailyLogFactory and current nutritional targets.
+  An existing log retains its target snapshot.
+end note
+
+loop Each item in the selected source meal
+    Svc -> Factory : copy(sourceItem)
+    activate Factory
+    note right of Factory : Create copied versions of the Value objects and entities
+    Factory --> Svc : copiedItem
+    deactivate Factory
+    Svc -> Svc : collect copiedItem
+end
+
+note over SourceLog, Factory
+  The historical aggregate remains unchanged.
+  Copy stored values only; no catalog or recipe-definition lookup.
+end note
+
+Svc -> TodayLog : addMealItems(destinationMealType, copiedItems)
+activate TodayLog
+TodayLog -> TodayLog : findMealByType(destinationMealType)
+note over TodayLog, DestinationMeal
+  Reuse the existing destination grouping when present.
+  Otherwise create one using existing meal-addition behaviour.
+  Each type, including Snacks, has one grouping per daily log.
+end note
+loop Each copied item
+    TodayLog -> DestinationMeal : addItem(copiedItem)
+    DestinationMeal --> TodayLog : appended alongside existing items
+end
+TodayLog --> Svc : all copied items added
+deactivate TodayLog
+
+note over Svc : Recalculate nutrition summary using existing US004 behaviour.
+Svc -> Repo : save(todayLog)
+Repo --> Svc : saved DailyLog with new item identities
+Svc -> Mapper : toResponseDTO(savedLog, summary)
+Mapper --> Svc : DailyLogResponseDTO
+Svc --> Ctrl : DailyLogResponseDTO
+deactivate Svc
+note over Ctrl, Repo : Transaction commits before the successful HTTP response.
+Ctrl --> UI : 200 OK + DailyLogResponseDTO
+deactivate Ctrl
+UI --> User : confirms the copy and displays today's updated meals and nutrition
+
+@enduml

@@ -1,0 +1,16 @@
+@startuml US010_SSD
+autonumber
+skinparam monochrome true
+skinparam shadowing false
+
+actor User
+participant System
+
+User -> System : Requests daily history for a month and year
+System --> User : Displays past daily logs with their meals and logged items
+User -> System : Selects a nonempty meal from a previous day to copy
+System --> User : Displays the selected meal and asks for today's destination meal
+User -> System : Chooses Breakfast, Lunch, Dinner, or Snacks
+System --> User : Confirms the meal was copied and displays today's updated meals and nutrition
+
+@enduml
