@@ -122,7 +122,6 @@ note top of UserNutritionalProfile
 - Relates directly to the User Entity Root.
 end note
 
-
 User -[hidden]-> UserNutritionalProfile
 UserNutritionalProfile -[hidden]-> ProgressTracker
 note bottom of RecipeMacros

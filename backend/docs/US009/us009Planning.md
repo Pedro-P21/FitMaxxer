@@ -16,7 +16,7 @@ As a User, I want to be able to edit or delete items I previously logged in a me
 
 **From the glossary and domain analysis:**
 - **DailyLog (Aggregate Root):** The authenticated user's log for one calendar date. It owns its meals and meal items; only today's log can be changed by US009.
-- **Meal:** A grouping of meal items under a supported `MealType`. Multiple `Snacks` entries are supported by the existing logging flow.
+- **Meal:** A grouping of meal items under a supported `MealType`. Each supported type, including `Snacks`, has one meal grouping per daily log.
 - **MealItem (Entity):** One individually selectable logged food or recipe, owning its `FoodSnapshot` and `PortionQuantity`.
 - **FoodSnapshot (Value Object):** The immutable food or recipe details captured when logged, including the nutrition and serving data used to calculate its contribution.
 - **PortionQuantity (Value Object):** A positive logged amount with its unit. A quantity correction changes the amount of the selected entry.
@@ -50,7 +50,7 @@ As a User, I want to be able to edit or delete items I previously logged in a me
 - Identity of the selected logged item, with sufficient log/meal context to identify the exact entry and validate membership in today's log.
 - Requested operation: change quantity, move, or delete.
 - For a quantity change: the new positive amount in the entry's existing unit.
-- For a move: the destination meal selection among the supported groupings, including sufficient context to distinguish snack entries where needed.
+- For a move: the destination meal type name, which uniquely selects its grouping within the daily log.
 
 **Output Data:**
 - Confirmation of the completed operation.
@@ -67,7 +67,7 @@ As a User, I want to be able to edit or delete items I previously logged in a me
 - Quantity editing changes the numeric amount in the existing unit. Switching units, replacing foods, editing snapshot details, and changing recipe definitions are outside this story.
 - Each operation targets an individual logged entry rather than matching by food name, barcode, or recipe name. Duplicate entries must remain independently selectable.
 - A move uses the meal types and grouping behavior already established in US004. Users do not create custom meal types or delete meals directly.
-- An empty meal contains no intake. Whether its internal grouping is retained or removed is deferred to design; no user-facing meal-deletion action is introduced.
+- An empty meal contains no intake and may remain while its daily log has other items. The final item deletion deletes the whole daily log. No user-facing meal-deletion action is introduced.
 - Changes use the persisted food snapshot and portion data, with no dependency on current catalog availability or the current recipe definition.
 - A logged recipe remains one meal item. Its logged serving quantity can change without editing recipe yield, ingredients, or saved nutrition.
 - Totals are derived from the remaining items and their quantities. Remaining values equal the stored targets minus consumed intake; negative values continue to indicate an exceeded target.
@@ -83,7 +83,7 @@ The existing `DailyLog` aggregate owns the meals and their individual `MealItem`
 
 Logged recipes already use an independent `FoodSnapshot` containing their log-time name, serving definition, and nutrition. US009 changes the logged entry, with no need to modify or reference the source recipe aggregate.
 
-The implementation currently supports reading and adding items but does not expose item or meal identities in its response DTOs. Independently selecting duplicate entries and distinguishing repeated snack groupings will require that identity gap to be addressed during design. Existing item attachment also permits an item to belong to only one meal, so moving it requires an explicit domain operation that preserves single ownership.
+Logged-item responses expose `itemId`, allowing duplicate food/recipe entries to be selected independently. `Meal` manages its items through a unidirectional collection; `MealItem` has no parent reference. `DailyLog` locates the selected item and coordinates membership changes between its meals. Collection removal and entity deletion are separate persistence operations.
 
 The final deletion ends the aggregate's lifecycle, including its owned meal records. Other item changes retain the log's date, owner, and target snapshot. Historical logs remain readable through US005 and outside the mutation scope.
 
@@ -91,7 +91,7 @@ The final deletion ends the aggregate's lifecycle, including its owned meal reco
 
 ### 3.3. Sequence Diagram (SD)
 
-The following diagrams show successful operations only. Quantity corrections use `MealItemFactory` to create a new immutable `PortionQuantity` and replace the item's previous value-object reference. The quantity-change flow is implemented; move and deletion APIs and domain methods remain proposals awaiting review.
+The following diagrams show successful operations only. Quantity corrections use `MealItemFactory` to create a new immutable `PortionQuantity` and replace the item's previous value-object reference. Quantity changes, moves, and deletions are implemented. Moves preserve the existing entity; deletion explicitly removes it through the aggregate repository.
 
 **Changing a logged quantity**
 
@@ -119,4 +119,19 @@ The following diagrams show successful operations only. Quantity corrections use
 - Quantities must be positive and fit existing `decimal(12,4)` storage. Invalid amounts return `400`; unauthenticated requests return `401`.
 - Nutrition is recalculated from stored snapshots, and the log is saved in one transaction. Catalog and recipe-definition lookups are not required.
 - The CLI's daily-log menu offers **Change a logged quantity**, with individual entry selection and input in the recorded unit.
-- Moving and deleting entries are not implemented in this phase.
+
+### 5.2. Meal Ownership, Moves, and Deletions
+
+- `Meal.items` owns the existing non-null `meal_id` foreign key through a unidirectional `@OneToMany` and `@JoinColumn`. `MealItem.meal` and `attachTo` are removed. Tables and item identities remain unchanged; no join table is introduced.
+- `DailyLog.addMealItem` reuses one meal per type, including Snacks, and rejects duplicate or already-persisted item attachment. Move operations use `DailyLog.moveMealItem` instead.
+- `PATCH /api/daily-log/today/items/{itemId}/meal` accepts `{ "destinationMealType": "Dinner" }`. The aggregate finds the destination by name; when absent it creates a meal with a new type VO. Moving to the current meal is a no-op. The existing item's identity, snapshot, and quantity are retained.
+- `DELETE /api/daily-log/today/items/{itemId}` removes the selected item through `DailyLog.removeMealItem`. `DailyLogRepository.deleteRemovedItem` explicitly schedules entity deletion via its persistence fragment.
+- `Meal.items` retains cascade operations but disables orphan removal, so moving an item does not schedule its deletion. Empty source meals remain. Deleting the final daily item deletes the aggregate, including all remaining empty meal rows, and returns US004's empty view using current profile targets.
+- Both operations scope lookup to the authenticated owner and today's server-derived date and run within a transaction. The CLI offers individual move/delete actions.
+- Existing databases may contain legacy repeated Snacks meal rows. The integration test includes inline SQL that consolidates duplicate log/type groupings while retaining every item ID, snapshot, and quantity. This SQL runs only against the isolated test database; no automatic migration of saved user data is performed.
+
+### 5.3. Validation
+
+- Database integration tests verify moves to existing/new destinations, same-meal moves, one Snacks grouping after repeated additions, explicit deletion, final-log deletion/recreation, aggregate cascades, non-null foreign keys, and rollback after flush.
+- API tests cover authentication, foreign/historical/missing items, invalid destinations, stored targets, and snapshot-based totals. Factory tests retain immutable quantity replacement coverage; CLI tests cover all three edit choices.
+- The inline legacy consolidation SQL is tested with duplicate meal rows and checks preserved item identities and intake.

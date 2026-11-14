@@ -29,7 +29,7 @@ DailyLog "1" *-- "0..*" Meal
 DailyLog "1" --> "1" UserNutritionalProfile: "references"
 
 Meal "1" *-- "1" MealType
-Meal "1" *-- "0..*" MealItem
+Meal "1" *--> "0..*" MealItem
 
 MealItem "1" *-- "1" FoodSnapshot
 MealItem "1" *-- "1" PortionQuantity
