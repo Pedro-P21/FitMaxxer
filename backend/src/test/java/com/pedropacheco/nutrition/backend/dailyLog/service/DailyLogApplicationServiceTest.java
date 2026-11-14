@@ -31,7 +31,7 @@ class DailyLogApplicationServiceTest {
             Clock.fixed(Instant.parse("2026-11-10T04:00:00Z"), ZoneOffset.UTC), foodCatalogQueryService,
             new DailyLogFactory(), new MealItemFactory(),
             mock(CustomRecipeService.class),
-            new com.pedropacheco.nutrition.backend.dailyLog.dto.RecipeFoodSnapshotMapper());
+            new com.pedropacheco.nutrition.backend.dailyLog.dto.RecipeFoodSnapshotMapper(), 10);
 
     @Test
     void returnsEmptyMealsAndZeroConsumedValuesUsingCurrentProfileTargets() {

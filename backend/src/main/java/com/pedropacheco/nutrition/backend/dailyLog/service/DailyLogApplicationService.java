@@ -22,6 +22,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import org.springframework.beans.factory.annotation.Value;
+import com.pedropacheco.nutrition.backend.dailyLog.dto.CopyMealRequestDTO;
+import com.pedropacheco.nutrition.backend.dailyLog.Exception.LoggedMealNotFoundException;
 
 @Service
 public class DailyLogApplicationService {
@@ -30,6 +34,7 @@ public class DailyLogApplicationService {
     private final DailyLogMapper mapper;
     private final NutrientScalingService nutrientScalingService;
     private final Clock clock;
+    private final int maxLookbackYears;
     private final FoodCatalogQueryService foodCatalogQueryService;
     private final DailyLogFactory dailyLogFactory;
     private final MealItemFactory mealItemFactory;
@@ -45,7 +50,10 @@ public class DailyLogApplicationService {
                                       DailyLogFactory dailyLogFactory,
                                       MealItemFactory mealItemFactory,
                                       CustomRecipeService recipes,
-                                      com.pedropacheco.nutrition.backend.dailyLog.dto.RecipeFoodSnapshotMapper recipeSnapshotMapper) {
+                                      com.pedropacheco.nutrition.backend.dailyLog.dto.RecipeFoodSnapshotMapper recipeSnapshotMapper,
+                                      @Value("${daily-log.history.max-lookback-years:10}") int maxLookbackYears) {
+        if (maxLookbackYears < 1) throw new IllegalArgumentException("History lookback must be at least one year.");
+        this.maxLookbackYears = maxLookbackYears;
         this.dailyLogRepository = dailyLogRepository;
         this.profileRepository = profileRepository;
         this.mapper = mapper;
@@ -76,6 +84,24 @@ public class DailyLogApplicationService {
                 .orElseThrow(NutritionalProfileRequiredException::new);
         DailyGoalSnapshot goalSnapshot = DailyGoalSnapshot.from(profile.getNutritionalGoal());
         return mapper.toEmptyResponseDTO(today, DailyNutritionSummary.empty(goalSnapshot));
+    }
+
+    @Transactional
+    public DailyLogResponseDTO copyMeal(String authenticatedUserId, CopyMealRequestDTO request) {
+        UserId userId = new UserId(authenticatedUserId);
+        LocalDate today = LocalDate.now(clock);
+        if (!request.sourceDate().isBefore(today))
+            throw new IllegalArgumentException("Only meals from previous days can be copied.");
+        LogHistoryWindow.validateMonth(YearMonth.from(request.sourceDate()), YearMonth.from(today), maxLookbackYears);
+        DailyLog source = dailyLogRepository.findByUserIdAndDate(userId.getValue(), request.sourceDate())
+                .orElseThrow(LoggedMealNotFoundException::new);
+        var sourceItems = source.getMealByType(request.sourceMealType()).getItems();
+        if (sourceItems.isEmpty()) throw new IllegalArgumentException("Empty meals cannot be copied.");
+        var copiedItems = sourceItems.stream().map(mealItemFactory::copy).toList();
+        DailyLog destination = loadOrCreateLog(userId, today);
+        destination.addMealItems(request.destinationMealType(), copiedItems);
+        var summary = destination.calculateNutritionSummary(nutrientScalingService);
+        return mapper.toResponseDTO(dailyLogRepository.save(destination), summary);
     }
 
     @Transactional
@@ -138,12 +164,7 @@ public class DailyLogApplicationService {
     private DailyLogResponseDTO addResolvedItem(String authenticatedUserId, String requestedMealType, MealItem item) {
         UserId userId = new UserId(authenticatedUserId);
         LocalDate today = LocalDate.now(clock);
-        DailyLog log = dailyLogRepository.findByUserIdAndDate(userId.getValue(), today).orElseGet(() -> {
-            var profile = profileRepository.findByUserId(userId)
-                    .orElseThrow(NutritionalProfileRequiredException::new);
-            return dailyLogFactory.create(userId, today, profile.getId(),
-                    DailyGoalSnapshot.from(profile.getNutritionalGoal()));
-        });
+        DailyLog log = loadOrCreateLog(userId, today);
 
         MealType mealType = new MealType(requestedMealType);
         // Validate that the catalog's serving and nutrient basis can be scaled before mutating the aggregate.
@@ -153,5 +174,14 @@ public class DailyLogApplicationService {
         DailyNutritionSummary summary = log.calculateNutritionSummary(nutrientScalingService);
         DailyLog savedLog = dailyLogRepository.save(log);
         return mapper.toResponseDTO(savedLog, summary);
+    }
+
+    private DailyLog loadOrCreateLog(UserId userId, LocalDate today) {
+        return dailyLogRepository.findByUserIdAndDate(userId.getValue(), today).orElseGet(() -> {
+            var profile = profileRepository.findByUserId(userId)
+                    .orElseThrow(NutritionalProfileRequiredException::new);
+            return dailyLogFactory.create(userId, today, profile.getId(),
+                    DailyGoalSnapshot.from(profile.getNutritionalGoal()));
+        });
     }
 }

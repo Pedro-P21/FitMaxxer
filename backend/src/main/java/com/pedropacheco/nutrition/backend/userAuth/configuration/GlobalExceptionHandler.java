@@ -1,6 +1,7 @@
 package com.pedropacheco.nutrition.backend.userAuth.configuration;
 
 import com.pedropacheco.nutrition.backend.dailyLog.Exception.LoggedItemNotFoundException;
+import com.pedropacheco.nutrition.backend.dailyLog.Exception.LoggedMealNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import com.pedropacheco.nutrition.backend.foodCatalog.service.FoodCatalogException;
@@ -14,6 +15,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(LoggedMealNotFoundException.class)
+    public ResponseEntity<String> handleLoggedMealNotFound(RuntimeException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(exception.getMessage());
+    }
+
     @ExceptionHandler(LoggedItemNotFoundException.class)
     public ResponseEntity<String> handleLoggedItemNotFound(
             LoggedItemNotFoundException exception) {

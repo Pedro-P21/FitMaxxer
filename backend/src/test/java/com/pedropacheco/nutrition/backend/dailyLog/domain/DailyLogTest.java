@@ -119,6 +119,24 @@ class DailyLogTest {
         assertThrows(UnsupportedOperationException.class, () -> log.getMeals().getFirst().getItems().clear());
     }
 
+    @Test
+    void rejectedBatchDoesNotAppendAnyItemsOrClaimValidEntries() {
+        var source = new DailyLog(new UserId("source"), LocalDate.of(2026, 11, 14), 1L,
+                new DailyGoalSnapshot(2000, 120, 220, 70));
+        var attached = item("Source food", "100", "2", "3", "1");
+        source.addMealItem(new MealType("Breakfast"), attached);
+        var destination = new DailyLog(new UserId("destination"), LocalDate.of(2026, 11, 15), 2L,
+                new DailyGoalSnapshot(2000, 120, 220, 70));
+        var fresh = item("Copied food", "100", "2", "3", "1");
+        assertThrows(IllegalStateException.class, () -> destination.addMealItems("Lunch", java.util.List.of(fresh, attached)));
+        assertTrue(destination.getMeals().isEmpty());
+        assertThrows(IllegalArgumentException.class, () -> destination.addMealItems("Lunch", java.util.List.of(fresh, fresh)));
+        assertTrue(destination.getMeals().isEmpty());
+        destination.addMealItems("Lunch", java.util.List.of(fresh));
+        assertEquals(1, destination.getMealByType("Lunch").getItems().size());
+        assertEquals(1, source.getMealByType("Breakfast").getItems().size());
+    }
+
     private MealItem item(String name, String calories, String protein, String carbs, String fat) {
         return new MealItem(new FoodSnapshot(name, null, null,
                 new BigDecimal(calories), new BigDecimal(protein), new BigDecimal(carbs), new BigDecimal(fat),

@@ -48,12 +48,7 @@ public class LogHistoryService {
             throw new IllegalArgumentException("Month and year must be valid calendar values.", exception);
         }
 
-        if (requestedMonth.isAfter(currentMonth)) {
-            throw new IllegalArgumentException("Daily log history cannot be requested for a future month.");
-        }
-        if (requestedMonth.isBefore(currentMonth.minusYears(maxLookbackYears))) {
-            throw new IllegalArgumentException("The requested month is outside the supported history window.");
-        }
+        LogHistoryWindow.validateMonth(requestedMonth, currentMonth, maxLookbackYears);
 
         LocalDate startDate = requestedMonth.atDay(1);
         LocalDate endDate = requestedMonth.atEndOfMonth();

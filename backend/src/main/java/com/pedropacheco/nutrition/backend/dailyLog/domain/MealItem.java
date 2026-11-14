@@ -25,9 +25,13 @@ public class MealItem {
         this.portionQuantity = Objects.requireNonNull(portionQuantity, "Portion quantity cannot be null.");
     }
 
-    void claimForLogging() {
+    void ensureAvailableForLogging() {
         if (id != null || claimedForLogging)
             throw new IllegalStateException("Only a new, unassigned item can be added. Move existing items instead.");
+    }
+
+    void claimForLogging() {
+        ensureAvailableForLogging();
         claimedForLogging = true;
     }
 

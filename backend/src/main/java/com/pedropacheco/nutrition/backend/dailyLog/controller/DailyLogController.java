@@ -1,6 +1,7 @@
 package com.pedropacheco.nutrition.backend.dailyLog.controller;
 
 import com.pedropacheco.nutrition.backend.dailyLog.dto.ChangeMealItemQuantityRequestDTO;
+import com.pedropacheco.nutrition.backend.dailyLog.dto.CopyMealRequestDTO;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import com.pedropacheco.nutrition.backend.dailyLog.dto.MoveMealItemRequestDTO;
@@ -24,6 +25,12 @@ public class DailyLogController {
 
     public DailyLogController(DailyLogApplicationService dailyLogApplicationService) {
         this.dailyLogApplicationService = dailyLogApplicationService;
+    }
+
+    @PostMapping("/today/meal-copies")
+    public ResponseEntity<DailyLogResponseDTO> copyMeal(@AuthenticationPrincipal Jwt authenticatedUser,
+            @RequestBody CopyMealRequestDTO request) {
+        return ResponseEntity.ok(dailyLogApplicationService.copyMeal(authenticatedUser.getSubject(), request));
     }
 
     @PatchMapping("/today/items/{itemId}/quantity")

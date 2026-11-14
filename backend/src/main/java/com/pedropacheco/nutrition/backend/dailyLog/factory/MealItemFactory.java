@@ -10,6 +10,20 @@ import java.math.BigDecimal;
 
 @Component
 public class MealItemFactory {
+    /** Copies recorded values into a new entity; the source remains owned by its historical log. */
+    public MealItem copy(MealItem source) {
+        FoodSnapshot food = source.getFoodSnapshot();
+        FoodSnapshot snapshot = new FoodSnapshot(food.getFoodName(), food.getBrand(), food.getBarcode(),
+                food.getCaloriesKcal(), food.getProteinGrams(), food.getCarbohydrateGrams(), food.getFatGrams(),
+                food.getNutrientBasis(), food.getServingSizeQuantity(), food.getServingSizeUnit());
+        PortionQuantity portion = source.getPortionQuantity();
+        PortionQuantity quantity = portion.getUnit() == PortionQuantity.Unit.NAMED
+                ? PortionQuantity.named(portion.getLabel(), portion.getAmount(),
+                        portion.getEquivalentAmount(), portion.getEquivalentUnit())
+                : new PortionQuantity(portion.getAmount(), portion.getUnit());
+        return new MealItem(snapshot, quantity);
+    }
+
     public void changeItemQuantity(MealItem item, BigDecimal newAmount) {
         // Enforce the persisted decimal(12,4) bounds before replacing the value object.
         if (newAmount == null || newAmount.signum() <= 0)

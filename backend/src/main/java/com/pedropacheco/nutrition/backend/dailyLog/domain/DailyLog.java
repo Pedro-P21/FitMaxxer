@@ -1,6 +1,7 @@
 package com.pedropacheco.nutrition.backend.dailyLog.domain;
 
 import com.pedropacheco.nutrition.backend.dailyLog.Exception.LoggedItemNotFoundException;
+import com.pedropacheco.nutrition.backend.dailyLog.Exception.LoggedMealNotFoundException;
 import com.pedropacheco.nutrition.backend.dailyLog.service.NutrientScalingService;
 import com.pedropacheco.nutrition.backend.userAuth.domain.UserId;
 import jakarta.persistence.*;
@@ -59,6 +60,31 @@ public class DailyLog {
             meals.add(targetMeal);
         }
         targetMeal.addItem(item);
+    }
+
+    public Meal getMealByType(String typeName) {
+        Meal meal = findMealByType(typeName);
+        if (meal == null) throw new LoggedMealNotFoundException();
+        return meal;
+    }
+
+    public void addMealItems(String destinationTypeName, List<MealItem> items) {
+        List<MealItem> entries = List.copyOf(items);
+        if (entries.isEmpty()) throw new IllegalArgumentException("A meal copy must contain items.");
+        Meal destination = findMealByType(destinationTypeName);
+        var uniqueEntries = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<MealItem, Boolean>());
+        for (MealItem item : entries) {
+            item.ensureAvailableForLogging();
+            if (!uniqueEntries.add(item)) throw new IllegalArgumentException("Each copied entry must be distinct.");
+        }
+        if (destination == null) {
+            destination = new Meal(new MealType(destinationTypeName), this);
+            meals.add(destination);
+        }
+        for (MealItem item : entries) {
+            item.claimForLogging();
+            destination.addItem(item);
+        }
     }
 
     private Meal findMealByType(String destinationTypeName) {
