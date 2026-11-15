@@ -138,3 +138,7 @@ The diagram shows the successful copy into an existing current-day log. US005 hi
 - Success returns `200 OK` with `DailyLogResponseDTO`, including new item identities, meal totals, targets, and remaining values.
 - Invalid requests, ineligible dates, and empty source meals return `400`. Missing or foreign source logs/meals return the same `404` response. Authentication is required (`401`), and creating a first log without a profile returns the existing `409` profile-required response.
 - No database schema changes or persistent associations between source and destination are introduced. The historical log's targets, items, and snapshots remain unchanged.
+
+### Daily Log Write Consistency
+
+Current-day mutations use an owner/date-scoped root write lock. First-log creation uses the user/date uniqueness constraint and bounded transaction retries; meal types are unique within each log. Catalog/recipe DTO resolution precedes the write transaction, and factories create fresh entities and value objects inside each attempt. See [Daily Log Write Consistency](../US004/dailyLogWrites.md) for transaction boundaries, timeout handling, and concurrent-write validation.

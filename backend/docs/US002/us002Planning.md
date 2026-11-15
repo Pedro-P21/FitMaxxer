@@ -135,7 +135,7 @@ The following diagram illustrates the user nutritional profile and nutritional g
 | `UserNutritionalProfileFactory` | `createProfile(...)` | Creates a new profile after recalculation when profile inputs change. |
 | `UserNutritionalProfile` | Goal replacement / profile creation | Holds the resulting physical data, activity level, and nutritional goal. |
 | `UserNutritionalProfileRepository` | `save(UserNutritionalProfile)` | Persists the updated nutritional profile. |
-| `DailyLogRepository` | `findByUserIdAndDate(...)`, `save(DailyLog)` | Finds and updates today's log snapshot as part of the goal-edit transaction; prior dates are not queried or changed. |
+| `DailyLogRepository` | `findByUserIdAndDateForUpdate(...)`, `save(DailyLog)` | Finds and updates today's log snapshot as part of the goal-edit transaction; prior dates are not queried or changed. |
 | `DailyGoalSnapshot` / `DailyLog` | `from(NutritionalGoal)` / `updateGoalSnapshot(...)` | Builds and replaces the current day's calorie and macro target snapshot. |
 | `UserNutritionalProfileMapper` | `toDTO(...)` | Maps the updated profile and operation result into the response. |
 
@@ -156,7 +156,11 @@ EditUserNutritionalProfileController.editProfile()
 │  └─ UserNutritionalProfileFactory.createProfile() → New profile
 ├─ Else (goal fields only): create updated NutritionalGoal value(s) and replace them
 ├─ UserNutritionalProfileRepository.save() → Persists resulting profile
-├─ DailyLogRepository.findByUserIdAndDate(today)
+├─ DailyLogRepository.findByUserIdAndDateForUpdate(today)
 │  └─ If today's log exists: replace goal snapshot from saved profile and save in same transaction
 └─ UserNutritionalProfileMapper.toDTO() → Returns updated profile and goals
 ```
+
+### Daily Log Write Consistency
+
+Current-day mutations use an owner/date-scoped root write lock. First-log creation uses the user/date uniqueness constraint and bounded transaction retries; meal types are unique within each log. Catalog/recipe DTO resolution precedes the write transaction, and factories create fresh entities and value objects inside each attempt. See [Daily Log Write Consistency](../US004/dailyLogWrites.md) for transaction boundaries, timeout handling, and concurrent-write validation.

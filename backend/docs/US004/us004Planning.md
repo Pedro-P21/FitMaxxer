@@ -180,7 +180,7 @@ User selects a food and adds 3 catalog servings to Breakfast
 ↓
 DailyLogController (authenticated principal.userId)
 ├─ DailyLogApplicationService
-│  ├─ DailyLogRepository.findByUserIdAndDate(userId, today)
+│  ├─ DailyLogRepository.findByUserIdAndDateForUpdate(userId, today)
 │  ├─ FoodCatalogQueryService.getFoodDetails(catalogLookupKey)
 │  ├─ If absent: UserNutritionalProfileRepository.findByUserId(userId)
 │  │  └─ DailyLogFactory.create(userId, today, profile ID, target snapshot)
@@ -193,3 +193,7 @@ DailyLogController (authenticated principal.userId)
 │  └─ DailyLogMapper.toDTO(dailyLog, progress)
 └─ Return updated daily log and nutritional summary
 ```
+
+### Daily Log Write Consistency
+
+Current-day mutations use an owner/date-scoped root write lock. First-log creation uses the user/date uniqueness constraint and bounded transaction retries; meal types are unique within each log. Catalog/recipe DTO resolution precedes the write transaction, and factories create fresh entities and value objects inside each attempt. See [Daily Log Write Consistency](dailyLogWrites.md) for transaction boundaries, timeout handling, and concurrent-write validation.

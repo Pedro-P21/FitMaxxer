@@ -47,7 +47,7 @@ class EditUserNutritionalProfileServiceTest {
     void refreshesTodaysDailyLogTargetSnapshotAfterGoalEdit() {
         DailyLog today = new DailyLog(new UserId("user-123"), LocalDate.of(2026, 11, 11), 1L,
                 new DailyGoalSnapshot(1800, 100, 150, 89));
-        when(dailyLogRepository.findByUserIdAndDate("user-123", LocalDate.of(2026, 11, 11)))
+        when(dailyLogRepository.findByUserIdAndDateForUpdate("user-123", LocalDate.of(2026, 11, 11)))
                 .thenReturn(Optional.of(today));
         ProfileChangesDTO changes = changes();
         changes.calorieTarget = 2200;
@@ -68,7 +68,7 @@ class EditUserNutritionalProfileServiceTest {
 
         service.editUserProfile("user-123", changes);
 
-        verify(dailyLogRepository).findByUserIdAndDate("user-123", LocalDate.of(2026, 11, 11));
+        verify(dailyLogRepository).findByUserIdAndDateForUpdate("user-123", LocalDate.of(2026, 11, 11));
         verify(dailyLogRepository, never()).save(any(DailyLog.class));
     }
 

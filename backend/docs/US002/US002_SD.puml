@@ -1,4 +1,4 @@
-@startuml US002-SD
+@startuml US002_SD
 autonumber
 skinparam monochrome true
 skinparam packageStyle rectangle
@@ -31,6 +31,10 @@ deactivate Auth
 Ctrl -> Svc : editProfile(userId, changesDTO)
 activate Svc
 
+note right of Svc
+  Lock today's existing DailyLog before profile changes.
+  Profile and current-day targets commit in the same transaction.
+end note
 Svc -> ProfileRepo : findByUserId(userId)
 activate ProfileRepo
 ProfileRepo --> Svc : existing profile

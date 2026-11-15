@@ -15,6 +15,14 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler({com.pedropacheco.nutrition.backend.dailyLog.Exception.DailyLogWriteConflictException.class,
+            org.springframework.dao.PessimisticLockingFailureException.class,
+            org.springframework.dao.QueryTimeoutException.class})
+    public ResponseEntity<String> handleDailyLogContention(RuntimeException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body("The daily log is being updated by another request. Please try again.");
+    }
+
     @ExceptionHandler(LoggedMealNotFoundException.class)
     public ResponseEntity<String> handleLoggedMealNotFound(RuntimeException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(exception.getMessage());

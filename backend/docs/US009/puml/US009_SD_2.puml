@@ -20,8 +20,9 @@ User -> UI : selects a logged item and its destination meal
 UI -> Auth : PATCH /api/daily-log/today/items/{itemId}/meal\n{destinationMealType} + bearer token
 Auth -> Ctrl : authenticated userId, itemId, request DTO
 Ctrl -> Svc : moveItem(userId, itemId, request)
-Svc -> Repo : findByUserIdAndDate(userId, today)
+Svc -> Repo : findByUserIdAndDateForUpdate(userId, today)
 Repo --> Svc : today's owned DailyLog with meals and items
+note over Svc, Repo : Short write transaction; the daily-log root is locked until commit or rollback.
 Svc -> Log : moveMealItem(itemId, request.destinationMealType)
 Log -> Log : getItem(itemId) and locate its source meal
 Log -> Log : findMealByType(destinationTypeName)

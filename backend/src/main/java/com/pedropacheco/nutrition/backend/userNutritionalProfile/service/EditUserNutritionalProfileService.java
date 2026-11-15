@@ -47,6 +47,7 @@ public class EditUserNutritionalProfileService {
         validateChanges(changes);
 
         UserId profileOwnerId = new UserId(userId);
+        var todayLog = dailyLogRepository.findByUserIdAndDateForUpdate(profileOwnerId.getValue(), LocalDate.now(clock));
         UserNutritionalProfile currentProfile = findProfile(profileOwnerId, userId);
 
 
@@ -67,8 +68,7 @@ public class EditUserNutritionalProfileService {
                 physicalData, activityLevel, goal, physicalChanged || activityChanged);
 
         UserNutritionalProfile savedProfile = profileRepository.save(updatedProfile);
-        dailyLogRepository.findByUserIdAndDate(profileOwnerId.getValue(), LocalDate.now(clock))
-                .ifPresent(dailyLog -> {
+        todayLog.ifPresent(dailyLog -> {
                     dailyLog.updateGoalSnapshot(DailyGoalSnapshot.from(savedProfile.getNutritionalGoal()));
                     dailyLogRepository.save(dailyLog);
                 });

@@ -1,4 +1,4 @@
-@startuml US004-SD-2
+@startuml US004_SD_2
 autonumber 27
 
 actor "User" as Actor
@@ -49,9 +49,14 @@ activate FoodDetailsDTO
 FoodDetailsDTO --> FoodQuery : food details DTO
 deactivate FoodDetailsDTO
 FoodQuery --> Svc : FoodCatalogDetailsDTO
+note right of Svc
+  Catalog resolution precedes the short write transaction.
+  Lock today's existing daily log before reading its meals/items.
+  First-log creation conflicts retry with fresh objects, up to three attempts.
+end note
 deactivate FoodQuery
 
-Svc -> LogRepo : findByUserIdAndDate(userId, currentDate)
+Svc -> LogRepo : findByUserIdAndDateForUpdate(userId, currentDate)
 activate LogRepo
 LogRepo --> Svc : Optional<DailyLog>
 deactivate LogRepo

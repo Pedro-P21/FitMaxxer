@@ -30,7 +30,7 @@ Ctrl -> Svc : copyMeal(userId, requestDTO)
 activate Svc
 
 note right of Svc
-  Runs in one transaction.
+  Runs in a short write transaction.
   Uses the configured clock to determine today.
   Validates sourceDate is in the past and within US005's history window.
 end note
@@ -41,12 +41,13 @@ SourceLog --> Svc : selected nonempty sourceMeal
 Svc -> SourceMeal : getItems()
 SourceMeal --> Svc : recorded source items
 
-Svc -> Repo : findByUserIdAndDate(userId, today)
+Svc -> Repo : findByUserIdAndDateForUpdate(userId, today)
 Repo --> Svc : existing todayLog
 note over Svc, TodayLog
   If today's log does not exist, reuse US004's first-log creation
   behaviour with DailyLogFactory and current nutritional targets.
-  An existing log retains its target snapshot.
+  An existing log is write-locked and retains its target snapshot.
+  First-log creation conflicts retry in a fresh transaction (up to three attempts).
 end note
 
 loop Each item in the selected source meal

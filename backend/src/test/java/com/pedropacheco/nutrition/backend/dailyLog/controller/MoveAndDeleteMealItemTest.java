@@ -186,42 +186,13 @@ class MoveAndDeleteMealItemTest {
     }
 
     @Test
-    void consolidatesLegacySnackRowsWithoutChangingEntriesOrNutrition() {
+    void rejectsDuplicateSnackGroupingAtTheDatabaseBoundary() {
         Long first = createLog("owner", today, 1);
         service.moveItem("owner", first, new MoveMealItemRequestDTO("Snacks"));
-        Long second = service.getToday("owner").meals().get(2).items().getFirst().itemId();
-        service.moveItem("owner", second, new MoveMealItemRequestDTO("Snacks"));
-        jdbc.update("insert into daily_log_meal(daily_log_id, meal_type) select daily_log_id, 'SNACKS' from daily_log");
-        Long duplicate = jdbc.queryForObject("select max(id) from daily_log_meal", Long.class);
-        jdbc.update("update daily_log_meal_item set meal_id = ? where id = ?", duplicate, second);
-        new TransactionTemplate(transactions).executeWithoutResult(status -> {
-            jdbc.update("""
-                    UPDATE daily_log_meal_item AS item
-                    SET meal_id = (
-                        SELECT MIN(destination.id)
-                        FROM daily_log_meal AS source
-                        JOIN daily_log_meal AS destination
-                          ON destination.daily_log_id = source.daily_log_id
-                         AND destination.meal_type = source.meal_type
-                        WHERE source.id = item.meal_id
-                    )
-                    """);
-            jdbc.update("""
-                    DELETE FROM daily_log_meal
-                    WHERE id NOT IN (
-                        SELECT retained.keep_id FROM (
-                            SELECT MIN(id) AS keep_id
-                            FROM daily_log_meal
-                            GROUP BY daily_log_id, meal_type
-                        ) AS retained
-                    )
-                    """);
-        });
+        assertThrows(org.springframework.dao.DataIntegrityViolationException.class, () ->
+                jdbc.update("insert into daily_log_meal(daily_log_id, meal_type) select daily_log_id, 'SNACKS' from daily_log"));
         assertEquals(1, jdbc.queryForObject("select count(*) from daily_log_meal where meal_type = 'SNACKS'", Long.class));
         assertEquals(2, count("daily_log_meal_item"));
-        var snackItems = service.getToday("owner").meals().get(3).items();
-        assertEquals(java.util.Set.of(first, second), snackItems.stream().map(MealItemResponseDTO::itemId)
-                .collect(java.util.stream.Collectors.toSet()));
         assertEquals(200, service.getToday("owner").nutritionSummary().consumed().caloriesKcal().intValue());
     }
 

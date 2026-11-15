@@ -23,8 +23,9 @@ UI -> Auth : PATCH /api/daily-log/today/items/{itemId}/quantity\n{quantity} + be
 Auth -> Ctrl : authenticated userId, itemId, request DTO
 Ctrl -> Svc : changeItemQuantity(userId, itemId, request)
 
-Svc -> Repo : findByUserIdAndDate(userId, today)
+Svc -> Repo : findByUserIdAndDateForUpdate(userId, today)
 Repo --> Svc : today's owned DailyLog with meals and items
+note over Svc, Repo : Short write transaction; the daily-log root is locked until commit or rollback.
 Svc -> Log : getItem(itemId)
 Log -> Log : locate the selected item within this aggregate
 Log --> Svc : MealItem

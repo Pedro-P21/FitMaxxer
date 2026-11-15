@@ -122,16 +122,20 @@ The following diagrams show successful operations only. Quantity corrections use
 
 ### 5.2. Meal Ownership, Moves, and Deletions
 
-- `Meal.items` owns the existing non-null `meal_id` foreign key through a unidirectional `@OneToMany` and `@JoinColumn`. `MealItem.meal` and `attachTo` are removed. Tables and item identities remain unchanged; no join table is introduced.
+- `Meal.items` owns the existing non-null `meal_id` foreign key through a unidirectional `@OneToMany` and `@JoinColumn`. `MealItem` owns its snapshot and portion values without a parent-meal reference. The association uses the child-table foreign key without a join table.
 - `DailyLog.addMealItem` reuses one meal per type, including Snacks, and rejects duplicate or already-persisted item attachment. Move operations use `DailyLog.moveMealItem` instead.
 - `PATCH /api/daily-log/today/items/{itemId}/meal` accepts `{ "destinationMealType": "Dinner" }`. The aggregate finds the destination by name; when absent it creates a meal with a new type VO. Moving to the current meal is a no-op. The existing item's identity, snapshot, and quantity are retained.
 - `DELETE /api/daily-log/today/items/{itemId}` removes the selected item through `DailyLog.removeMealItem`. `DailyLogRepository.deleteRemovedItem` explicitly schedules entity deletion via its persistence fragment.
 - `Meal.items` retains cascade operations but disables orphan removal, so moving an item does not schedule its deletion. Empty source meals remain. Deleting the final daily item deletes the aggregate, including all remaining empty meal rows, and returns US004's empty view using current profile targets.
 - Both operations scope lookup to the authenticated owner and today's server-derived date and run within a transaction. The CLI offers individual move/delete actions.
-- Existing databases may contain legacy repeated Snacks meal rows. The integration test includes inline SQL that consolidates duplicate log/type groupings while retaining every item ID, snapshot, and quantity. This SQL runs only against the isolated test database; no automatic migration of saved user data is performed.
+- The database enforces one meal grouping per daily log/type through `uk_daily_log_meal_type`, including Snacks.
 
 ### 5.3. Validation
 
 - Database integration tests verify moves to existing/new destinations, same-meal moves, one Snacks grouping after repeated additions, explicit deletion, final-log deletion/recreation, aggregate cascades, non-null foreign keys, and rollback after flush.
 - API tests cover authentication, foreign/historical/missing items, invalid destinations, stored targets, and snapshot-based totals. Factory tests retain immutable quantity replacement coverage; CLI tests cover all three edit choices.
-- The inline legacy consolidation SQL is tested with duplicate meal rows and checks preserved item identities and intake.
+- Integration tests verify that the database rejects duplicate meal-type groupings without changing existing entries or nutrition.
+
+### Daily Log Write Consistency
+
+Current-day mutations use an owner/date-scoped root write lock. First-log creation uses the user/date uniqueness constraint and bounded transaction retries; meal types are unique within each log. Catalog/recipe DTO resolution precedes the write transaction, and factories create fresh entities and value objects inside each attempt. See [Daily Log Write Consistency](../US004/dailyLogWrites.md) for transaction boundaries, timeout handling, and concurrent-write validation.

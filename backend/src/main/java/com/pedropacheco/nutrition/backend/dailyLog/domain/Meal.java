@@ -8,7 +8,8 @@ import java.util.List;
 import java.util.Objects;
 
 @Entity
-@Table(name = "daily_log_meal")
+@Table(name = "daily_log_meal", uniqueConstraints = @UniqueConstraint(
+        name = "uk_daily_log_meal_type", columnNames = {"daily_log_id", "meal_type"}))
 public class Meal {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

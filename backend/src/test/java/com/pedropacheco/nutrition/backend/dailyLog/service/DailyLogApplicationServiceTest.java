@@ -31,7 +31,7 @@ class DailyLogApplicationServiceTest {
             Clock.fixed(Instant.parse("2026-11-10T04:00:00Z"), ZoneOffset.UTC), foodCatalogQueryService,
             new DailyLogFactory(), new MealItemFactory(),
             mock(CustomRecipeService.class),
-            new com.pedropacheco.nutrition.backend.dailyLog.dto.RecipeFoodSnapshotMapper(), 10);
+            new com.pedropacheco.nutrition.backend.dailyLog.dto.RecipeFoodSnapshotMapper(), 10, transactionManager());
 
     @Test
     void returnsEmptyMealsAndZeroConsumedValuesUsingCurrentProfileTargets() {
@@ -66,7 +66,7 @@ class DailyLogApplicationServiceTest {
         UserNutritionalProfile profile = mock(UserNutritionalProfile.class);
         when(profile.getId()).thenReturn(12L);
         when(profile.getNutritionalGoal()).thenReturn(profile().getNutritionalGoal());
-        when(dailyLogRepository.findByUserIdAndDate("user-1", LocalDate.of(2026, 11, 10))).thenReturn(Optional.empty());
+        when(dailyLogRepository.findByUserIdAndDateForUpdate("user-1", LocalDate.of(2026, 11, 10))).thenReturn(Optional.empty());
         when(profileRepository.findByUserId(new UserId("user-1"))).thenReturn(Optional.of(profile));
         when(foodCatalogQueryService.getFoodDetails("openfoodfacts:12345678")).thenReturn(banana());
         when(dailyLogRepository.save(any(DailyLog.class))).thenAnswer(call -> call.getArgument(0));
@@ -86,7 +86,7 @@ class DailyLogApplicationServiceTest {
     void addingToExistingLogReusesItsGoalSnapshotWithoutLoadingProfile() {
         DailyLog log = new DailyLog(new UserId("user-1"), LocalDate.of(2026, 11, 10), 12L,
                 new com.pedropacheco.nutrition.backend.dailyLog.domain.DailyGoalSnapshot(2000, 120, 220, 70));
-        when(dailyLogRepository.findByUserIdAndDate("user-1", LocalDate.of(2026, 11, 10))).thenReturn(Optional.of(log));
+        when(dailyLogRepository.findByUserIdAndDateForUpdate("user-1", LocalDate.of(2026, 11, 10))).thenReturn(Optional.of(log));
         when(foodCatalogQueryService.getFoodDetails("openfoodfacts:12345678")).thenReturn(banana());
         when(dailyLogRepository.save(any(DailyLog.class))).thenAnswer(call -> call.getArgument(0));
 
@@ -103,7 +103,7 @@ class DailyLogApplicationServiceTest {
         UserNutritionalProfile profile = mock(UserNutritionalProfile.class);
         when(profile.getId()).thenReturn(12L);
         when(profile.getNutritionalGoal()).thenReturn(profile().getNutritionalGoal());
-        when(dailyLogRepository.findByUserIdAndDate("user-1", LocalDate.of(2026, 11, 10))).thenReturn(Optional.empty());
+        when(dailyLogRepository.findByUserIdAndDateForUpdate("user-1", LocalDate.of(2026, 11, 10))).thenReturn(Optional.empty());
         when(profileRepository.findByUserId(new UserId("user-1"))).thenReturn(Optional.of(profile));
         when(foodCatalogQueryService.getFoodDetails("food-1"))
                 .thenReturn(new FoodCatalogDetailsDTO("food-1", "Milk", null, null,
@@ -123,7 +123,7 @@ class DailyLogApplicationServiceTest {
         UserNutritionalProfile profile = mock(UserNutritionalProfile.class);
         when(profile.getId()).thenReturn(12L);
         when(profile.getNutritionalGoal()).thenReturn(profile().getNutritionalGoal());
-        when(dailyLogRepository.findByUserIdAndDate("user-1", LocalDate.of(2026, 11, 10))).thenReturn(Optional.empty());
+        when(dailyLogRepository.findByUserIdAndDateForUpdate("user-1", LocalDate.of(2026, 11, 10))).thenReturn(Optional.empty());
         when(profileRepository.findByUserId(new UserId("user-1"))).thenReturn(Optional.of(profile));
         when(foodCatalogQueryService.getFoodDetails("openfoodfacts:12345678"))
                 .thenReturn(new FoodCatalogDetailsDTO("openfoodfacts:12345678", "Banana", null, null,
@@ -133,6 +133,12 @@ class DailyLogApplicationServiceTest {
         assertThrows(IllegalArgumentException.class, () -> service.addMealItem("user-1",
                 new AddMealItemRequestDTO("openfoodfacts:12345678", "Breakfast", BigDecimal.ONE)));
         verify(dailyLogRepository, never()).save(any());
+    }
+
+    private static org.springframework.transaction.PlatformTransactionManager transactionManager() {
+        var manager = mock(org.springframework.transaction.PlatformTransactionManager.class);
+        when(manager.getTransaction(any())).thenAnswer(call -> new org.springframework.transaction.support.SimpleTransactionStatus());
+        return manager;
     }
 
     private UserNutritionalProfile profile() {
