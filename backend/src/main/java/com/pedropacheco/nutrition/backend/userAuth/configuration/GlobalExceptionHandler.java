@@ -15,6 +15,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(com.pedropacheco.nutrition.backend.userNutritionalProfile.service.UserProfileNotFoundException.class)
+    public ResponseEntity<String> handleUserProfileNotFound(RuntimeException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(exception.getMessage());
+    }
+
     @ExceptionHandler({com.pedropacheco.nutrition.backend.dailyLog.Exception.DailyLogWriteConflictException.class,
             org.springframework.dao.PessimisticLockingFailureException.class,
             org.springframework.dao.QueryTimeoutException.class})

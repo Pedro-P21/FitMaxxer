@@ -21,17 +21,20 @@ public class FitMaxxerMainMenu {
     private final DailyLogUI dailyLogUI;
     private final DailyHistoryUI dailyHistoryUI;
     private final CustomRecipeUI customRecipeUI;
+    private final ViewUserNutritionalProfileUI viewUserNutritionalProfileUI;
 
     public FitMaxxerMainMenu(UpdateUserNutritionalProfileUI updateUserNutritionalProfileUI,
                              FoodCatalogSearchUI foodCatalogSearchUI,
                              DailyLogUI dailyLogUI,
                              DailyHistoryUI dailyHistoryUI,
-                             CustomRecipeUI customRecipeUI) {
+                             CustomRecipeUI customRecipeUI,
+                             ViewUserNutritionalProfileUI viewUserNutritionalProfileUI) {
         this.updateUserNutritionalProfileUI = updateUserNutritionalProfileUI;
         this.foodCatalogSearchUI = foodCatalogSearchUI;
         this.dailyLogUI = dailyLogUI;
         this.dailyHistoryUI = dailyHistoryUI;
         this.customRecipeUI = customRecipeUI;
+        this.viewUserNutritionalProfileUI = viewUserNutritionalProfileUI;
     }
 
     public void show(String userId, Scanner scanner) {
@@ -58,7 +61,7 @@ public class FitMaxxerMainMenu {
 
             switch (choice) {
                 case "1":
-                    System.out.println("[INFO] Profile feature is under development.");
+                    viewUserNutritionalProfileUI.show(userId);
                     break;
                 case "2":
                     dailyLogUI.show(userId, scanner);
