@@ -4,10 +4,12 @@ import com.pedropacheco.nutrition.backend.userAuth.service.UserAuthService;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.stereotype.Component;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 import java.util.Scanner;
 
 @Component
+@ConditionalOnProperty(name = "app.cli.enabled", havingValue = "true", matchIfMissing = false)
 public class TerminalRunner implements CommandLineRunner {
 
     private final UserAuthService authService;

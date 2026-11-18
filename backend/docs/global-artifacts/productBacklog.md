@@ -20,8 +20,6 @@ As a User, I want to see the past history of my daily logs, so that I can review
 ## US006. Custom Foods and Recipes
 As a User, I want to be able to create my own custom foods, ingredients, and recipes, so that I can log items that are not available in the public catalog.
 
-## US007. Progress and Trend Tracking
-As a User, I want to be able to see a progress trend showcasing changes over time, so that I can evaluate if my nutrition plan is working.
 
 ## US008. Authentication and Account Management
 As a User, I want to create an account and log in securely, so that my personal data, custom recipes, and history are safely synchronized and saved.
@@ -35,6 +33,8 @@ As a User, I want to be able to copy a meal from a previous day into my current 
 ----
 ## PHASE 2
 
+## US007. Progress and Trend Tracking
+As a User, I want to be able to see a progress trend showcasing changes over time, so that I can evaluate if my nutrition plan is working.
 ## US011. Barcode Scanning
 As a User, I want to be able to scan a barcode to log food items quickly.
 

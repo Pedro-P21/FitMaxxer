@@ -103,10 +103,10 @@ class RecipeBrowsingAndLoggingIntegrationTest {
         var foreign = recipe("other", "Private", "200", "3");
         for (String id : List.of(foreign.getId().getValue(), "missing")) {
             mvc.perform(get("/api/recipes/" + id).with(jwt().jwt(t -> t.subject("owner"))))
-                    .andExpect(status().isNotFound()).andExpect(content().string("Recipe not found."));
+                    .andExpect(status().isNotFound()).andExpect(jsonPath("$.detail").value("Recipe not found."));
             mvc.perform(post("/api/daily-log/today/recipe-items").with(jwt().jwt(t -> t.subject("owner")))
                             .contentType(MediaType.APPLICATION_JSON).content(body(id, "1")))
-                    .andExpect(status().isNotFound()).andExpect(content().string("Recipe not found."));
+                    .andExpect(status().isNotFound()).andExpect(jsonPath("$.detail").value("Recipe not found."));
         }
         assertEquals(0, logs.count());
         verifyNoInteractions(provider);

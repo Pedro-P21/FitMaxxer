@@ -65,7 +65,7 @@ class ViewUserNutritionalProfileTest {
     void reportsMissingProfileWithoutReturningAnotherUsersDataOrCreatingAProfile() throws Exception {
         mvc.perform(get("/api/profiles").with(jwt().jwt(token -> token.subject("missing"))))
                 .andExpect(status().isNotFound())
-                .andExpect(content().string("No nutritional profile found. Create your profile first."));
+                .andExpect(jsonPath("$.detail").value("No nutritional profile found. Create your profile first."));
         assertEquals(2, profiles.count());
     }
 
