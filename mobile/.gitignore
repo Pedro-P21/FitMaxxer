@@ -46,3 +46,6 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Machine-specific API address for physical-device development.
+/config/*.local.json
