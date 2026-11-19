@@ -6,6 +6,9 @@ import '../models/daily_log.dart';
 import '../providers/daily_log_provider.dart';
 import '../providers/log_history_provider.dart';
 import 'history_view.dart';
+import 'recipes_view.dart';
+import '../providers/recipes_provider.dart';
+import '../services/recipe_service.dart';
 import '../providers/session_provider.dart';
 import '../services/daily_log_service.dart';
 import '../services/food_catalog_service.dart';
@@ -38,6 +41,7 @@ class _TodayViewState extends State<TodayView> with WidgetsBindingObserver {
   final Set<String> _expandedMeals = {};
   String _selectedTab = 'Today';
   LogHistoryProvider? _history;
+  RecipesProvider? _recipes;
   @override
   void initState() {
     super.initState();
@@ -59,6 +63,7 @@ class _TodayViewState extends State<TodayView> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _history?.dispose();
+    _recipes?.dispose();
     if (widget.diary == null) _diary.dispose();
     super.dispose();
   }
@@ -94,6 +99,7 @@ class _TodayViewState extends State<TodayView> with WidgetsBindingObserver {
             session: widget.session,
             onToday: () => _selectTab('Today'),
             onHistory: () => _selectTab('History'),
+            onRecipes: () => _selectTab('Recipes'),
           )
         : _selectedTab == 'History'
         ? HistoryView(
@@ -101,6 +107,14 @@ class _TodayViewState extends State<TodayView> with WidgetsBindingObserver {
             diary: _diary,
             onSelectTab: _selectTab,
             onCopied: () => setState(() => _selectedTab = 'Today'),
+          )
+        : _selectedTab == 'Recipes'
+        ? RecipesView(
+            recipes: _recipes!,
+            diary: _diary,
+            onSelectTab: _selectTab,
+            scanBarcode: widget.scanBarcode,
+            onLogged: () => setState(() => _selectedTab = 'Today'),
           )
         : Scaffold(
             bottomNavigationBar: _navigation(),
@@ -541,7 +555,8 @@ class _TodayViewState extends State<TodayView> with WidgetsBindingObserver {
   }
 
   void _selectTab(String tab) {
-    if (tab == _selectedTab || !['Today', 'History', 'Profile'].contains(tab)) {
+    if (tab == _selectedTab ||
+        !['Today', 'History', 'Recipes', 'Profile'].contains(tab)) {
       return;
     }
     if (tab == 'History') {
@@ -549,6 +564,9 @@ class _TodayViewState extends State<TodayView> with WidgetsBindingObserver {
         _diary.service,
         today: () => _diary.log?.date ?? DateTime.now(),
       );
+    }
+    if (tab == 'Recipes') {
+      _recipes ??= RecipesProvider(RecipeService(widget.session.api));
     }
     setState(() => _selectedTab = tab);
     if (tab == 'Today') unawaited(_diary.load());

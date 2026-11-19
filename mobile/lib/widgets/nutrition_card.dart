@@ -9,9 +9,11 @@ class NutritionCard extends StatelessWidget {
     super.key,
     required this.nutrients,
     this.label = 'NUTRITION FOR THIS PORTION',
+    this.precise = false,
   });
   final Nutrients? nutrients;
   final String label;
+  final bool precise;
   @override
   Widget build(BuildContext context) => Container(
     width: double.infinity,
@@ -55,7 +57,11 @@ class NutritionCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${e.value?.round() ?? '—'} g',
+                      '${e.value == null
+                          ? '—'
+                          : precise
+                          ? amountText(e.value!)
+                          : e.value!.round()} g',
                       style: AppTheme.textStyle(18, weight: FontWeight.w700),
                     ),
                     Text(

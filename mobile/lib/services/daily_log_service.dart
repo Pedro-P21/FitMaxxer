@@ -24,6 +24,18 @@ class DailyLogService {
     ),
   );
 
+  Future<DailyLog> addRecipe(
+    String recipeId,
+    String meal,
+    double servings,
+  ) async => DailyLog.fromJson(
+    await api.request(
+      'POST',
+      '/api/daily-log/today/recipe-items',
+      body: {'recipeId': recipeId, 'mealType': meal, 'quantity': servings},
+    ),
+  );
+
   Future<DailyLog> today() async =>
       DailyLog.fromJson(await api.request('GET', '/api/daily-log/today'));
   Future<DailyLog> add(

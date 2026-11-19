@@ -26,7 +26,7 @@ class AppBottomNavigation extends StatelessWidget {
               child: Semantics(
                 selected: tab == selected,
                 child: InkWell(
-                  onTap: tab != 'Recipes' ? () => onSelect(tab) : null,
+                  onTap: () => onSelect(tab),
                   borderRadius: BorderRadius.circular(16),
                   child: Container(
                     padding: const EdgeInsets.all(4),

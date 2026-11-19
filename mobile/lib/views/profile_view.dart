@@ -17,10 +17,11 @@ class ProfileView extends StatefulWidget {
     required this.session,
     required this.onToday,
     this.onHistory,
+    this.onRecipes,
   });
   final SessionProvider session;
   final VoidCallback onToday;
-  final VoidCallback? onHistory;
+  final VoidCallback? onHistory, onRecipes;
   @override
   State<ProfileView> createState() => _ProfileViewState();
 }
@@ -118,6 +119,7 @@ class _ProfileViewState extends State<ProfileView> {
         if (_loggingOut) return;
         if (tab == 'Today') widget.onToday();
         if (tab == 'History') widget.onHistory?.call();
+        if (tab == 'Recipes') widget.onRecipes?.call();
       },
     ),
     body: SafeArea(

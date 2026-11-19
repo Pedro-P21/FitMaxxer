@@ -1,6 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../models/catalog_food.dart';
+import '../models/recipe.dart';
+import 'ingredient_amount_view.dart';
 import '../providers/daily_log_provider.dart';
 import '../providers/food_catalog_provider.dart';
 import '../services/food_catalog_service.dart';
@@ -23,11 +25,13 @@ class FoodSearchView extends StatefulWidget {
     required this.diary,
     required this.meal,
     this.scanBarcode,
+    this.selectIngredient = false,
   });
   final FoodCatalogService catalog;
   final DailyLogProvider diary;
   final String meal;
   final BarcodeScan? scanBarcode;
+  final bool selectIngredient;
   @override
   State<FoodSearchView> createState() => _FoodSearchViewState();
 }
@@ -62,17 +66,18 @@ class _FoodSearchViewState extends State<FoodSearchView> {
                 MaterialPageRoute(builder: (_) => const BarcodeScannerView()),
               ));
       if (!mounted || code == null) return;
-      final added = await Navigator.of(context).push<bool>(
+      final added = await Navigator.of(context).push<Object>(
         MaterialPageRoute(
           builder: (_) => BarcodeConfirmationView(
             barcode: code,
+            selectIngredient: widget.selectIngredient,
             catalog: widget.catalog,
             diary: widget.diary,
             meal: widget.meal,
           ),
         ),
       );
-      if (mounted && added == true) {
+      if (mounted && (added == true || added is DraftIngredient)) {
         Navigator.pop(context, added);
       }
     } finally {
@@ -81,14 +86,19 @@ class _FoodSearchViewState extends State<FoodSearchView> {
   }
 
   Future<void> _select(CatalogFood food) async {
-    widget.diary.clearFeedback();
-    final added = await Navigator.of(context).push<bool>(
+    if (!widget.selectIngredient) widget.diary.clearFeedback();
+    final added = await Navigator.of(context).push<Object>(
       MaterialPageRoute(
-        builder: (_) =>
-            FoodDetailsView(food: food, diary: widget.diary, meal: widget.meal),
+        builder: (_) => widget.selectIngredient
+            ? IngredientAmountView(food: food)
+            : FoodDetailsView(
+                food: food,
+                diary: widget.diary,
+                meal: widget.meal,
+              ),
       ),
     );
-    if (mounted && added == true) {
+    if (mounted && (added == true || added is DraftIngredient)) {
       Navigator.pop(context, added);
     }
   }
@@ -120,14 +130,20 @@ class _FoodSearchViewState extends State<FoodSearchView> {
               onPressed: () => _catalog.search(_query.text),
             ),
             AppButton(
-              label: 'Back to Today',
+              label: widget.selectIngredient
+                  ? 'Back to recipe'
+                  : 'Back to Today',
               variant: AppButtonVariant.secondary,
-              onPressed: _today,
+              onPressed: widget.selectIngredient
+                  ? () => Navigator.pop(context)
+                  : _today,
             ),
           ],
           children: [
             Text(
-              'Your diary is safe.',
+              widget.selectIngredient
+                  ? 'Your recipe draft is safe.'
+                  : 'Your diary is safe.',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const Text(
@@ -142,10 +158,18 @@ class _FoodSearchViewState extends State<FoodSearchView> {
       }
       final noResults = _catalog.searched && _catalog.foods.isEmpty;
       return FlowScaffold(
-        eyebrow: noResults ? 'NO RESULTS' : 'LOG FOOD',
-        title: 'Find your food',
+        eyebrow: noResults
+            ? 'NO RESULTS'
+            : widget.selectIngredient
+            ? 'RECIPE BUILDER'
+            : 'LOG FOOD',
+        title: widget.selectIngredient ? 'Add an ingredient' : 'Find your food',
         actions: const [],
-        backLabel: noResults ? 'Search food' : 'Today',
+        backLabel: noResults
+            ? 'Search food'
+            : widget.selectIngredient
+            ? 'Create recipe'
+            : 'Today',
         onBack: () {
           if (noResults) {
             _query.clear();

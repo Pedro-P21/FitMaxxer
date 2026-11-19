@@ -2,6 +2,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 
 import '../models/catalog_food.dart';
+import '../models/recipe.dart';
+import 'ingredient_amount_view.dart';
 import '../providers/daily_log_provider.dart';
 import '../services/food_catalog_service.dart';
 import '../theme/app_theme.dart';
@@ -20,8 +22,10 @@ class BarcodeConfirmationView extends StatefulWidget {
     required this.catalog,
     required this.diary,
     required this.meal,
+    this.selectIngredient = false,
   });
   final String barcode, meal;
+  final bool selectIngredient;
   final FoodCatalogService catalog;
   final DailyLogProvider diary;
   @override
@@ -68,16 +72,18 @@ class _BarcodeConfirmationViewState extends State<BarcodeConfirmationView> {
         setState(() => _error = 'No matching food was found for this barcode.');
       } else {
         setState(() => _busy = false);
-        final added = await Navigator.of(context).push<bool>(
+        final added = await Navigator.of(context).push<Object>(
           MaterialPageRoute(
-            builder: (_) => FoodDetailsView(
-              food: _food!,
-              diary: widget.diary,
-              meal: widget.meal,
-            ),
+            builder: (_) => widget.selectIngredient
+                ? IngredientAmountView(food: _food!)
+                : FoodDetailsView(
+                    food: _food!,
+                    diary: widget.diary,
+                    meal: widget.meal,
+                  ),
           ),
         );
-        if (mounted && added == true) {
+        if (mounted && (added == true || added is DraftIngredient)) {
           Navigator.pop(context, added);
         }
       }
@@ -96,7 +102,7 @@ class _BarcodeConfirmationViewState extends State<BarcodeConfirmationView> {
   Widget build(BuildContext context) => Form(
     key: _form,
     child: FlowScaffold(
-      eyebrow: 'LOG FOOD',
+      eyebrow: widget.selectIngredient ? 'RECIPE BUILDER' : 'LOG FOOD',
       title: 'Confirm your barcode',
       backLabel: 'Search food',
       onBack: _busy ? null : () => Navigator.pop(context),
