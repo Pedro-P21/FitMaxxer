@@ -9,6 +9,7 @@ import 'theme/app_theme.dart';
 import 'views/auth_view.dart';
 import 'views/onboarding_view.dart';
 import 'views/session_expired_view.dart';
+import 'views/today_view.dart';
 import 'views/welcome_view.dart';
 import 'widgets/app_button.dart';
 import 'widgets/app_feedback_card.dart';
@@ -90,23 +91,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           body: Center(child: CircularProgressIndicator()),
         ),
         SessionStage.onboarding => OnboardingView(session: _session),
-        SessionStage.ready => Scaffold(
-          body: SafeArea(
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Your account is ready',
-                    style: Theme.of(context).textTheme.headlineMedium,
-                  ),
-                  const SizedBox(height: 12),
-                  Text('${_session.profile!.calories} kcal / day'),
-                ],
-              ),
-            ),
-          ),
-        ),
+        SessionStage.ready => TodayView(session: _session),
         SessionStage.expired => SessionExpiredView(
           onLogin: () {
             _signedOutScreen = 'login';

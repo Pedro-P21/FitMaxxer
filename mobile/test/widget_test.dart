@@ -46,7 +46,7 @@ void main() {
   });
 
   testWidgets(
-    'register, automatic login, seven goals and saved profile journey',
+    'register, automatic login, seven goals, targets and Today journey',
     (tester) async {
       tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1;
@@ -64,7 +64,28 @@ void main() {
             submitted = jsonDecode(r.body) as Map<String, dynamic>;
             return http.Response(jsonEncode(savedProfile), 200);
           }
-          throw StateError('Unexpected request: ${r.method} ${r.url.path}');
+          return http.Response(
+            jsonEncode({
+              'date': '2026-11-17',
+              'meals': [],
+              'nutritionSummary': {
+                'consumed': {'caloriesKcal': 0},
+                'targets': {
+                  'caloriesKcal': 2300,
+                  'proteinGrams': 201,
+                  'carbohydrateGrams': 230,
+                  'fatGrams': 64,
+                },
+                'remaining': {
+                  'caloriesKcal': 2300,
+                  'proteinGrams': 201,
+                  'carbohydrateGrams': 230,
+                  'fatGrams': 64,
+                },
+              },
+            }),
+            200,
+          );
         }),
       );
       final session = SessionProvider(api: api, store: MemoryTokenStore());
@@ -107,8 +128,8 @@ void main() {
       expect(find.text('2300'), findsOneWidget);
       await tester.tap(find.text('Start my day'));
       await tester.pumpAndSettle();
-      expect(find.text('Your account is ready'), findsOneWidget);
-      expect(find.text('2300 kcal / day'), findsOneWidget);
+      expect(find.text('Today'), findsNWidgets(2));
+      expect(find.text('0 items'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
