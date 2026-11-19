@@ -14,6 +14,7 @@ import '../widgets/app_bottom_navigation.dart';
 import '../widgets/app_feedback_card.dart';
 import '../widgets/nutrition_card.dart';
 import 'food_search_view.dart';
+import 'edit_log_item_view.dart';
 import 'profile_view.dart';
 
 class TodayView extends StatefulWidget {
@@ -68,6 +69,15 @@ class _TodayViewState extends State<TodayView> with WidgetsBindingObserver {
           meal: meal,
           scanBarcode: widget.scanBarcode,
         ),
+      ),
+    );
+  }
+
+  Future<void> _edit(LoggedItem item) async {
+    _diary.clearFeedback();
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => EditLogItemView(item: item, diary: _diary),
       ),
     );
   }
@@ -420,7 +430,9 @@ class _TodayViewState extends State<TodayView> with WidgetsBindingObserver {
                             key: ValueKey(
                               'logged-item-${meal.items.single.id}',
                             ),
-                            onTap: null,
+                            onTap: _diary.busy
+                                ? null
+                                : () => _edit(meal.items.single),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(vertical: 6),
                               child: Text(
@@ -489,7 +501,7 @@ class _TodayViewState extends State<TodayView> with WidgetsBindingObserver {
             for (final item in meal.items)
               InkWell(
                 key: ValueKey('logged-item-${item.id}'),
-                onTap: null,
+                onTap: _diary.busy ? null : () => _edit(item),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   child: Row(

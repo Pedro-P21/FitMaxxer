@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../models/daily_log.dart';
+import '../models/nutrition.dart';
 import '../services/api_client.dart';
 import '../services/daily_log_service.dart';
 
@@ -74,6 +75,16 @@ class DailyLogProvider extends ChangeNotifier {
         () => service.add(foodId, meal, quantity, unit),
         'Added to $meal · totals updated',
       );
+  Future<bool> quantity(LoggedItem item, double quantity) => _mutate(
+    () => service.changeQuantity(item.id, quantity),
+    'Quantity saved · ${amountText(quantity)} ${unitLabel(item.unit, short: true)}',
+  );
+  Future<bool> move(LoggedItem item, String destination) => _mutate(
+    () => service.move(item.id, destination),
+    'Moved to $destination · totals unchanged',
+  );
+  Future<bool> delete(LoggedItem item) =>
+      _mutate(() => service.delete(item.id), 'Item deleted · totals updated');
   void clearFeedback() {
     _confirmation?.cancel();
     message = null;

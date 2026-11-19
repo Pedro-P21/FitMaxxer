@@ -71,7 +71,7 @@ void main() {
   });
 
   testWidgets(
-    'explicit search → portion preview → log with confirmation and updated totals',
+    'search → log → edit → move → delete final item, with confirmations and totals',
     (tester) async {
       phone(tester);
       double quantity = 0;
@@ -93,6 +93,15 @@ void main() {
             expect(body['quantityUnit'], 'GRAM');
             quantity = (body['quantity'] as num).toDouble();
             meal = body['mealType'] as String;
+          } else if (r.method == 'PATCH') {
+            final body = jsonDecode(r.body);
+            if (r.url.path.endsWith('quantity')) {
+              quantity = (body['quantity'] as num).toDouble();
+            } else {
+              meal = body['destinationMealType'] as String;
+            }
+          } else if (r.method == 'DELETE') {
+            quantity = 0;
           }
           return http.Response(
             jsonEncode(diaryJson(quantity: quantity, meal: meal)),
@@ -139,13 +148,57 @@ void main() {
       await tester.pumpAndSettle();
       expect(quantity, 150);
       expect(find.text('Added to Snacks · totals updated'), findsOneWidget);
-      expect(calls.where((r) => r.method == 'POST'), hasLength(1));
-      expect(jsonDecode(calls.singleWhere((r) => r.method == 'POST').body), {
-        'foodId': yogurtFood['foodId'],
-        'mealType': 'Snacks',
-        'quantity': 150,
-        'quantityUnit': 'GRAM',
-      });
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('logged-item-1')),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(find.byKey(const ValueKey('logged-item-1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('logged-item-1')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), '200');
+      await tester.pumpAndSettle();
+      final moveButton = tester.widget<TextButton>(
+        find.widgetWithText(TextButton, 'Move to another meal'),
+      );
+      expect(moveButton.onPressed, isNull);
+      expect(find.text('200 kcal'), findsOneWidget);
+      await tester.tap(find.text('Save quantity'));
+      await tester.pumpAndSettle();
+      expect(find.text('Quantity saved · 200 g'), findsOneWidget);
+      await tester.ensureVisible(find.byKey(const ValueKey('logged-item-1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('logged-item-1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Move to another meal'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Dinner'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Move to Dinner'));
+      await tester.pumpAndSettle();
+      expect(meal, 'Dinner');
+      expect(quantity, 200);
+      expect(find.text('Moved to Dinner · totals unchanged'), findsOneWidget);
+      await tester.ensureVisible(find.byKey(const ValueKey('logged-item-1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('logged-item-1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete this item'));
+      await tester.pumpAndSettle();
+      expect(find.text('DAILY TOTAL AFTER DELETING'), findsOneWidget);
+      await tester.tap(find.text('Keep item'));
+      await tester.pumpAndSettle();
+      expect(quantity, 200);
+      await tester.tap(find.text('Delete this item'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete item'));
+      await tester.pumpAndSettle();
+      expect(quantity, 0);
+      expect(find.text('0 items'), findsOneWidget);
+      expect(find.byKey(const ValueKey('logged-item-1')), findsNothing);
+      expect(calls.where((r) => r.method == 'POST').length, 1);
+      expect(calls.where((r) => r.method == 'DELETE').length, 1);
       await tester.pumpWidget(const SizedBox());
     },
   );

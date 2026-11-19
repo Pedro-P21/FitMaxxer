@@ -71,20 +71,18 @@ void main() {
     });
     await diary.load();
     final original = diary.log!;
-    expect(await diary.add('food', 'Dinner', 200, 'GRAM'), isFalse);
+    expect(await diary.quantity(original.item(1)!, 200), isFalse);
     expect(diary.log, same(original));
     expect(diary.error, isNotNull);
     fail = false;
-    expect(await diary.add('food', 'Dinner', 200, 'GRAM'), isTrue);
-    expect(jsonDecode(requests.last.body), {
-      'foodId': 'food',
-      'mealType': 'Dinner',
-      'quantity': 200,
-      'quantityUnit': 'GRAM',
-    });
-    expect(requests.last.url.path, '/api/daily-log/today/items');
+    expect(await diary.quantity(original.item(1)!, 200), isTrue);
+    expect(jsonDecode(requests.last.body), {'quantity': 200});
+    expect(requests.last.url.path, '/api/daily-log/today/items/1/quantity');
     expect(diary.log!.consumed.calories, 200);
-    expect(diary.message, 'Added to Dinner · totals updated');
+    expect(diary.message, contains('200 g'));
+    await diary.move(diary.log!.item(1)!, 'Lunch');
+    expect(jsonDecode(requests.last.body), {'destinationMealType': 'Lunch'});
+    expect(diary.message, contains('Moved to Lunch'));
   });
   test('late GET does not overwrite a mutation and duplicate mutations are blocked', () async {
     final read = Completer<http.Response>(), write = Completer<http.Response>();
