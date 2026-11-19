@@ -62,14 +62,7 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   assets:
-    - assets/images/banana_barbell.svg
-    - assets/images/weightlifter.svg
-    - assets/images/session_progress.svg
-    - assets/images/session_track.svg
-    - assets/images/today.svg
-    - assets/images/history.svg
-    - assets/images/recipes.svg
-    - assets/images/profile.svg
+    - assets/images/
   fonts:
     - family: Inter
       fonts:
