@@ -12,9 +12,15 @@ import '../widgets/nutrition_card.dart';
 import 'profile_edit_view.dart';
 
 class ProfileView extends StatefulWidget {
-  const ProfileView({super.key, required this.session, required this.onToday});
+  const ProfileView({
+    super.key,
+    required this.session,
+    required this.onToday,
+    this.onHistory,
+  });
   final SessionProvider session;
   final VoidCallback onToday;
+  final VoidCallback? onHistory;
   @override
   State<ProfileView> createState() => _ProfileViewState();
 }
@@ -111,6 +117,7 @@ class _ProfileViewState extends State<ProfileView> {
       onSelect: (tab) {
         if (_loggingOut) return;
         if (tab == 'Today') widget.onToday();
+        if (tab == 'History') widget.onHistory?.call();
       },
     ),
     body: SafeArea(

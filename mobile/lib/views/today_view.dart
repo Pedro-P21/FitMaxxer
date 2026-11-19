@@ -4,6 +4,8 @@ import 'package:material_ui/material_ui.dart';
 
 import '../models/daily_log.dart';
 import '../providers/daily_log_provider.dart';
+import '../providers/log_history_provider.dart';
+import 'history_view.dart';
 import '../providers/session_provider.dart';
 import '../services/daily_log_service.dart';
 import '../services/food_catalog_service.dart';
@@ -11,11 +13,11 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_button.dart';
 import '../widgets/app_bottom_navigation.dart';
+import 'profile_view.dart';
 import '../widgets/app_feedback_card.dart';
 import '../widgets/nutrition_card.dart';
-import 'food_search_view.dart';
 import 'edit_log_item_view.dart';
-import 'profile_view.dart';
+import 'food_search_view.dart';
 
 class TodayView extends StatefulWidget {
   const TodayView({
@@ -34,7 +36,8 @@ class TodayView extends StatefulWidget {
 class _TodayViewState extends State<TodayView> with WidgetsBindingObserver {
   late final DailyLogProvider _diary;
   final Set<String> _expandedMeals = {};
-  bool _showProfile = false;
+  String _selectedTab = 'Today';
+  LogHistoryProvider? _history;
   @override
   void initState() {
     super.initState();
@@ -55,6 +58,7 @@ class _TodayViewState extends State<TodayView> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _history?.dispose();
     if (widget.diary == null) _diary.dispose();
     super.dispose();
   }
@@ -85,13 +89,18 @@ class _TodayViewState extends State<TodayView> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: _diary,
-    builder: (context, _) => _showProfile
+    builder: (context, _) => _selectedTab == 'Profile'
         ? ProfileView(
             session: widget.session,
-            onToday: () {
-              setState(() => _showProfile = false);
-              unawaited(_diary.load());
-            },
+            onToday: () => _selectTab('Today'),
+            onHistory: () => _selectTab('History'),
+          )
+        : _selectedTab == 'History'
+        ? HistoryView(
+            history: _history!,
+            diary: _diary,
+            onSelectTab: _selectTab,
+            onCopied: () => setState(() => _selectedTab = 'Today'),
           )
         : Scaffold(
             bottomNavigationBar: _navigation(),
@@ -531,12 +540,22 @@ class _TodayViewState extends State<TodayView> with WidgetsBindingObserver {
     );
   }
 
-  Widget _navigation() => AppBottomNavigation(
-    selected: 'Today',
-    onSelect: (tab) {
-      if (tab == 'Profile') setState(() => _showProfile = true);
-    },
-  );
+  void _selectTab(String tab) {
+    if (tab == _selectedTab || !['Today', 'History', 'Profile'].contains(tab)) {
+      return;
+    }
+    if (tab == 'History') {
+      _history ??= LogHistoryProvider(
+        _diary.service,
+        today: () => _diary.log?.date ?? DateTime.now(),
+      );
+    }
+    setState(() => _selectedTab = tab);
+    if (tab == 'Today') unawaited(_diary.load());
+  }
+
+  Widget _navigation() =>
+      AppBottomNavigation(selected: 'Today', onSelect: _selectTab);
   String _dateLabel(DateTime date) {
     const days = [
       'MONDAY',

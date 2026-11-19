@@ -70,6 +70,15 @@ class DailyLogProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> copyMeal(
+    DateTime sourceDate,
+    String sourceMeal,
+    String destination,
+  ) => _mutate(
+    () => service.copyMeal(sourceDate, sourceMeal, destination),
+    '$sourceMeal copied to $destination',
+  );
+
   Future<bool> add(String foodId, String meal, double quantity, String unit) =>
       _mutate(
         () => service.add(foodId, meal, quantity, unit),
