@@ -1,0 +1,140 @@
+# Run requests individually. See localDevelopment.md for prerequisites and response shapes.
+# Start in order: health -> register -> login -> create profile -> view profile -> today's log.
+@baseUrl = http://127.0.0.1:8080
+@userId = mobile-dev-user
+@email = mobile.dev@example.com
+@password = MobileDevPass123!
+# Paste token from login response. Re-login when it expires.
+@token = REPLACE_WITH_LOGIN_TOKEN
+# Replace with exact IDs returned by search/recipe/log responses.
+@foodId = REPLACE_WITH_FOOD_ID
+@recipeId = REPLACE_WITH_RECIPE_ID
+@itemId = REPLACE_WITH_LOGGED_ITEM_ID
+# Choose a real historical date/meal; update month/year as appropriate.
+@sourceDate = 2026-11-14
+@historyMonth = 11
+@historyYear = 2026
+
+### Public connectivity check
+GET {{baseUrl}}/api/health
+Accept: application/json
+
+### Register (201, empty body). Use new email/ID if this example account already exists.
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+Accept: application/json, application/problem+json
+
+{"email":"{{email}}","password":"{{password}}","userId":"{{userId}}"}
+
+### Login (copy response.token into @token)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+Accept: application/json, application/problem+json
+
+{"identifier":"{{userId}}","password":"{{password}}"}
+
+### Create the nutritional profile (registration does not create it)
+POST {{baseUrl}}/api/profiles/personal-data
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json, application/problem+json
+
+{
+  "age":30,"weight":70,"height":175,"gender":"MALE",
+  "activityLevel":"SEDENTARY","goalType":"MAINTAIN_WEIGHT",
+  "bodyFatPercentage":null,"unitSystem":"METRIC"
+}
+
+### View the complete saved profile
+GET {{baseUrl}}/api/profiles
+Authorization: Bearer {{token}}
+Accept: application/json, application/problem+json
+
+### Edit only selected profile fields; macros are recalculated for the new calorie target
+PUT {{baseUrl}}/api/profiles
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json, application/problem+json
+
+{"calorieTarget":2200}
+
+### View today's log (can be empty)
+GET {{baseUrl}}/api/daily-log/today
+Authorization: Bearer {{token}}
+Accept: application/json, application/problem+json
+
+### Search catalog and copy a returned foodId into @foodId
+GET {{baseUrl}}/api/foods?query=banana
+Authorization: Bearer {{token}}
+Accept: application/json, application/problem+json
+
+### Log the selected food; use a quantity unit compatible with the returned food
+POST {{baseUrl}}/api/daily-log/today/items
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json, application/problem+json
+
+{"foodId":"{{foodId}}","mealType":"Breakfast","quantity":1.5,"quantityUnit":"SERVING"}
+
+### Change a logged item's amount in its existing unit
+PATCH {{baseUrl}}/api/daily-log/today/items/{{itemId}}/quantity
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json, application/problem+json
+
+{"quantity":2}
+
+### Move that item to another meal
+PATCH {{baseUrl}}/api/daily-log/today/items/{{itemId}}/meal
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json, application/problem+json
+
+{"destinationMealType":"Snacks"}
+
+### Delete a selected logged item
+DELETE {{baseUrl}}/api/daily-log/today/items/{{itemId}}
+Authorization: Bearer {{token}}
+Accept: application/json, application/problem+json
+
+### Read past logs (today is excluded)
+GET {{baseUrl}}/api/daily-log/history?month={{historyMonth}}&year={{historyYear}}
+Authorization: Bearer {{token}}
+Accept: application/json, application/problem+json
+
+### Copy a nonempty historical meal into today; repeated copies append again
+POST {{baseUrl}}/api/daily-log/today/meal-copies
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json, application/problem+json
+
+{"sourceDate":"{{sourceDate}}","sourceMealType":"Breakfast","destinationMealType":"Lunch"}
+
+### Create a recipe from a real catalog food; use a compatible ingredient quantity/unit
+POST {{baseUrl}}/api/recipes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json, application/problem+json
+
+{
+  "name":"Example breakfast","numberOfServings":2,
+  "ingredients":[{"foodId":"{{foodId}}","quantity":2,"quantityUnit":"SERVING"}]
+}
+
+### Browse personal recipes
+GET {{baseUrl}}/api/recipes?page=0&size=20
+Authorization: Bearer {{token}}
+Accept: application/json, application/problem+json
+
+### Read a saved recipe
+GET {{baseUrl}}/api/recipes/{{recipeId}}
+Authorization: Bearer {{token}}
+Accept: application/json, application/problem+json
+
+### Log fractional recipe servings
+POST {{baseUrl}}/api/daily-log/today/recipe-items
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json, application/problem+json
+
+{"recipeId":"{{recipeId}}","mealType":"Dinner","quantity":0.5}
