@@ -1,0 +1,18 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="100.51" height="157.192" viewBox="0 0 100.51 157.192" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Weightlifter">
+<path id="Vector" d="M50.2548 56C57.4345 56 63.2548 50.1797 63.2548 43C63.2548 35.8203 57.4345 30 50.2548 30C43.0751 30 37.2548 35.8203 37.2548 43C37.2548 50.1797 43.0751 56 50.2548 56Z" fill="url(#paint0_linear_0_6)"/>
+<path id="Vector_2" d="M0.254834 7C-0.745166 3 1.25483 0 5.25483 0C9.25483 0 11.2548 3 12.2548 7L19.2548 33L36.2548 56C44.2548 53 56.2548 53 64.2548 56L81.2548 33L88.2548 7C89.2548 3 91.2548 0 95.2548 0C99.2548 0 101.255 3 100.255 7L93.2548 39C93.2548 42 92.2548 44 90.2548 46L70.2548 71L67.2548 92L80.2548 146C82.2548 152 80.2548 156 75.2548 157C70.2548 158 67.2548 155 65.2548 150L50.2548 105L35.2548 150C33.2548 155 30.2548 158 25.2548 157C20.2548 156 18.2548 152 20.2548 146L33.2548 92L30.2548 71L10.2548 46C8.25483 44 7.25483 42 7.25483 39L0.254834 7Z" fill="url(#paint1_linear_0_6)"/>
+</g>
+<defs>
+<linearGradient id="paint0_linear_0_6" x1="-29.7452" y1="109" x2="121.255" y2="-22" gradientUnits="userSpaceOnUse">
+<stop stop-color="#063EAC"/>
+<stop offset="0.55" stop-color="#217AF1"/>
+<stop offset="1" stop-color="#72D5FC"/>
+</linearGradient>
+<linearGradient id="paint1_linear_0_6" x1="-16.993" y1="123.76" x2="139.493" y2="22.1509" gradientUnits="userSpaceOnUse">
+<stop stop-color="#063EAC"/>
+<stop offset="0.55" stop-color="#217AF1"/>
+<stop offset="1" stop-color="#72D5FC"/>
+</linearGradient>
+</defs>
+</svg>
