@@ -40,7 +40,8 @@ class ProfileDraft {
 
 class UserProfile {
   UserProfile.fromJson(Map<String, dynamic> json)
-    : age = (json['age'] as num).toInt(),
+    : userId = json['userId'] as String?,
+      age = (json['age'] as num).toInt(),
       weightKg = (json['weightKg'] as num).toDouble(),
       heightCm = (json['heightCm'] as num).toDouble(),
       gender = json['gender'] as String,
@@ -55,6 +56,30 @@ class UserProfile {
   final double weightKg, heightCm;
   final double? bodyFat;
   final String gender, activity;
+  final String? userId;
+
+  Map<String, dynamic> toJson() => {
+    'userId': userId,
+    'age': age,
+    'weightKg': weightKg,
+    'heightCm': heightCm,
+    'gender': gender,
+    'bodyFatPercentage': bodyFat,
+    'activityLevel': activity,
+    'maintenanceCalories': maintenance,
+    'calorieTarget': calories,
+    'proteinGrams': protein,
+    'carbsGrams': carbs,
+    'fatsGrams': fat,
+  };
+
+  GoalOption? get goal {
+    for (final option in GoalOption.values) {
+      if (option.offset == calories - maintenance) return option;
+    }
+    return null;
+  }
+
   ProfileDraft toDraft() => ProfileDraft(
     age: '$age',
     weightKg: '$weightKg',

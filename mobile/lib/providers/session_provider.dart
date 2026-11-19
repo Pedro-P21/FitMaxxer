@@ -204,6 +204,13 @@ class SessionProvider extends ChangeNotifier {
     }
   }
 
+  void acceptProfile(UserProfile updated) {
+    if (stage != SessionStage.ready) return;
+    profile = updated;
+    draft = updated.toDraft();
+    notifyListeners();
+  }
+
   Future<void> logout() async {
     // Clear secure storage first: a failed clear must not silently restore a session.
     await store.clear();

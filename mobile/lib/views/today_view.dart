@@ -14,6 +14,7 @@ import '../widgets/app_bottom_navigation.dart';
 import '../widgets/app_feedback_card.dart';
 import '../widgets/nutrition_card.dart';
 import 'food_search_view.dart';
+import 'profile_view.dart';
 
 class TodayView extends StatefulWidget {
   const TodayView({
@@ -32,6 +33,7 @@ class TodayView extends StatefulWidget {
 class _TodayViewState extends State<TodayView> with WidgetsBindingObserver {
   late final DailyLogProvider _diary;
   final Set<String> _expandedMeals = {};
+  bool _showProfile = false;
   @override
   void initState() {
     super.initState();
@@ -73,82 +75,90 @@ class _TodayViewState extends State<TodayView> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: _diary,
-    builder: (context, _) => Scaffold(
-      bottomNavigationBar: _navigation(),
-      body: SafeArea(
-        bottom: false,
-        child: RefreshIndicator(
-          onRefresh: _diary.load,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: [
-              Text(
-                _dateLabel(_diary.log?.date ?? DateTime.now()),
-                style: AppTheme.textStyle(
-                  10,
-                  weight: FontWeight.w600,
-                  color: AppColors.blue,
-                ),
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Today',
-                      style: Theme.of(context).textTheme.headlineMedium,
-                    ),
-                  ),
-                  TextButton.icon(
-                    onPressed: _diary.log == null || _diary.busy
-                        ? null
-                        : _search,
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Log food'),
-                  ),
-                ],
-              ),
-              if (_diary.log == null && _diary.loading) ...[
-                Container(
-                  padding: const EdgeInsets.all(28),
-                  decoration: BoxDecoration(
-                    color: AppColors.white,
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: Column(
-                    children: [
-                      const CircularProgressIndicator(),
-                      const SizedBox(height: 20),
-                      Text(
-                        'Syncing your meals…',
-                        style: Theme.of(context).textTheme.headlineSmall,
+    builder: (context, _) => _showProfile
+        ? ProfileView(
+            session: widget.session,
+            onToday: () {
+              setState(() => _showProfile = false);
+              unawaited(_diary.load());
+            },
+          )
+        : Scaffold(
+            bottomNavigationBar: _navigation(),
+            body: SafeArea(
+              bottom: false,
+              child: RefreshIndicator(
+                onRefresh: _diary.load,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    Text(
+                      _dateLabel(_diary.log?.date ?? DateTime.now()),
+                      style: AppTheme.textStyle(
+                        10,
+                        weight: FontWeight.w600,
+                        color: AppColors.blue,
                       ),
-                      const SizedBox(height: 10),
-                      const Text(
-                        'Fetching your latest logs and daily targets.',
+                    ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Today',
+                            style: Theme.of(context).textTheme.headlineMedium,
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: _diary.log == null || _diary.busy
+                              ? null
+                              : _search,
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text('Log food'),
+                        ),
+                      ],
+                    ),
+                    if (_diary.log == null && _diary.loading) ...[
+                      Container(
+                        padding: const EdgeInsets.all(28),
+                        decoration: BoxDecoration(
+                          color: AppColors.white,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: Column(
+                          children: [
+                            const CircularProgressIndicator(),
+                            const SizedBox(height: 20),
+                            Text(
+                              'Syncing your meals…',
+                              style: Theme.of(context).textTheme.headlineSmall,
+                            ),
+                            const SizedBox(height: 10),
+                            const Text(
+                              'Fetching your latest logs and daily targets.',
+                            ),
+                          ],
+                        ),
                       ),
                     ],
-                  ),
+                    if (_diary.error != null) ...[
+                      AppFeedbackCard(
+                        title: 'Unable to load or update your diary',
+                        detail: _diary.error!,
+                      ),
+                      const SizedBox(height: 10),
+                      AppButton(
+                        label: 'Refresh diary',
+                        onPressed: _diary.busy ? null : _diary.load,
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                    if (_diary.log != null) _content(_diary.log!),
+                  ],
                 ),
-              ],
-              if (_diary.error != null) ...[
-                AppFeedbackCard(
-                  title: 'Unable to load or update your diary',
-                  detail: _diary.error!,
-                ),
-                const SizedBox(height: 10),
-                AppButton(
-                  label: 'Refresh diary',
-                  onPressed: _diary.busy ? null : _diary.load,
-                ),
-                const SizedBox(height: 10),
-              ],
-              if (_diary.log != null) _content(_diary.log!),
-            ],
+              ),
+            ),
           ),
-        ),
-      ),
-    ),
   );
   Widget _content(DailyLog log) {
     final count = log.meals.fold<int>(
@@ -509,8 +519,12 @@ class _TodayViewState extends State<TodayView> with WidgetsBindingObserver {
     );
   }
 
-  Widget _navigation() =>
-      AppBottomNavigation(selected: 'Today', onSelect: (_) {});
+  Widget _navigation() => AppBottomNavigation(
+    selected: 'Today',
+    onSelect: (tab) {
+      if (tab == 'Profile') setState(() => _showProfile = true);
+    },
+  );
   String _dateLabel(DateTime date) {
     const days = [
       'MONDAY',

@@ -13,6 +13,15 @@ class ProfileService {
     }
   }
 
+  Future<UserProfile> update(
+    UserProfile current,
+    Map<String, dynamic> changes,
+  ) async {
+    final data = await api.request('PUT', '/api/profiles', body: changes);
+    // PUT returns goals; physical fields come from the confirmed metric input.
+    return UserProfile.fromJson({...current.toJson(), ...changes, ...data});
+  }
+
   Future<UserProfile> save(ProfileDraft draft) async {
     final data = await api.request(
       'POST',
